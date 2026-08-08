@@ -28,8 +28,13 @@ function initApp() {
   Router.register('transactions', renderTransactions);
   Router.register('wallets', renderWallets);
   Router.register('debts', renderDebts);
+  Router.register('bills', renderBills);
   Router.register('ai', renderAI);
   Router.register('settings', renderSettings);
+
+  // Check bill deadline notifications on startup & periodically every 60s
+  Store.checkBillNotifications();
+  setInterval(() => Store.checkBillNotifications(), 60000);
 
   function bindAppEvents() {
     const menuBtn = document.getElementById('menu-btn');

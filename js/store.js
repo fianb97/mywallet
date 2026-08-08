@@ -4,6 +4,7 @@
 
 const Store = {
   STORAGE_KEY: 'mywallet_data',
+  _state: null, // In-memory cache to avoid repeated JSON.parse
 
   // Default state
   defaultState() {
@@ -11,13 +12,17 @@ const Store = {
       wallets: [],
       transactions: [],
       debts: [],
+      bills: [],
       customCategories: [],
       settings: { setupComplete: false, currency: 'IDR' }
     };
   },
 
-  // Load from localStorage
+  // Load from localStorage (with in-memory caching)
   load() {
+    // Return cached state if available
+    if (this._state) return this._state;
+
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY);
       if (raw) {
@@ -45,21 +50,30 @@ const Store = {
             };
           });
         }
+        this._state = state; // Cache the parsed state
         return state;
       }
     } catch (e) {
       console.error('Store load error:', e);
     }
-    return this.defaultState();
+    const def = this.defaultState();
+    this._state = def;
+    return def;
   },
 
-  // Save to localStorage
+  // Save to localStorage and update in-memory cache
   save(state) {
     try {
+      this._state = state; // Update cache immediately
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
       console.error('Store save error:', e);
     }
+  },
+
+  // Invalidate cache (force re-read from localStorage on next load)
+  invalidateCache() {
+    this._state = null;
   },
 
   // Get current state
@@ -302,7 +316,7 @@ const Store = {
     return newDebt;
   },
 
-  markDebtPaid(id) {
+  markDebtPaid(id, paidWalletId = null) {
     const state = this.load();
     const dIdx = state.debts.findIndex(d => d.id === id);
     if (dIdx === -1) return;
@@ -310,15 +324,18 @@ const Store = {
     const debt = state.debts[dIdx];
     debt.isPaid = true;
     debt.paidDate = Utils.today();
+    if (paidWalletId) {
+      debt.paidWalletId = paidWalletId;
+    }
 
-    // Reverse wallet balance
-    const wIdx = state.wallets.findIndex(w => w.id === debt.walletId);
+    const targetWalletId = paidWalletId || debt.walletId;
+    const wIdx = state.wallets.findIndex(w => w.id === targetWalletId);
     if (wIdx !== -1) {
       if (debt.type === 'receivable') {
-        // Piutang lunas: uang kembali ke wallet
+        // Piutang lunas: uang kembali ke target wallet
         state.wallets[wIdx].balance += debt.amount;
       } else {
-        // Hutang lunas: uang keluar dari wallet
+        // Hutang lunas: uang keluar dari target wallet
         state.wallets[wIdx].balance -= debt.amount;
       }
     }
@@ -351,6 +368,20 @@ const Store = {
     let debts = this.load().debts;
     if (filters.type) debts = debts.filter(d => d.type === filters.type);
     if (filters.isPaid !== undefined) debts = debts.filter(d => d.isPaid === filters.isPaid);
+    
+    if (filters.month !== undefined && filters.year !== undefined) {
+      debts = debts.filter(d => {
+        const targetDate = (d.isPaid && d.paidDate) ? d.paidDate : d.date;
+        if (!targetDate) return true;
+        const parts = targetDate.split('-').map(Number);
+        const y = parts[0];
+        const m = parts[1];
+        if (filters.month !== 0 && m !== filters.month) return false;
+        if (filters.year !== 0 && y !== filters.year) return false;
+        return true;
+      });
+    }
+
     debts.sort((a, b) => b.createdAt - a.createdAt);
     return debts;
   },
@@ -449,6 +480,165 @@ const Store = {
     state.settings.theme = theme;
     this.save(state);
     document.documentElement.setAttribute('data-theme', theme);
+  },
+
+  // ── BILLS MANAGEMENT ──
+  getBills(filters = {}) {
+    const state = this.load();
+    let bills = state.bills || [];
+
+    if (filters.isPaid !== undefined) {
+      bills = bills.filter(b => b.isPaid === filters.isPaid);
+    }
+
+    if (filters.month && filters.month > 0 && filters.isPaid) {
+      bills = bills.filter(b => {
+        const targetDate = b.paidDate || b.dueDate;
+        if (!targetDate) return false;
+        const m = parseInt(targetDate.substring(5, 7), 10);
+        return m === filters.month;
+      });
+    }
+
+    if (filters.year && filters.year > 0 && filters.isPaid) {
+      bills = bills.filter(b => {
+        const targetDate = b.paidDate || b.dueDate;
+        if (!targetDate) return false;
+        const y = parseInt(targetDate.substring(0, 4), 10);
+        return y === filters.year;
+      });
+    }
+
+    // Sort ACTIVE bills by closest deadline first (dueDate ascending)
+    if (filters.isPaid === false || filters.isPaid === undefined) {
+      bills.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    } else {
+      // Paid bills sorted by paidDate descending
+      bills.sort((a, b) => new Date(b.paidDate || b.dueDate) - new Date(a.paidDate || a.dueDate));
+    }
+
+    return bills;
+  },
+
+  getTotalActiveBills() {
+    return this.getBills({ isPaid: false }).reduce((sum, b) => sum + b.amount, 0);
+  },
+
+  addBill(bill) {
+    const state = this.load();
+    state.bills = state.bills || [];
+    const newBill = {
+      id: Utils.id(),
+      title: bill.title,
+      amount: bill.amount,
+      dueDate: bill.dueDate,
+      walletId: bill.walletId || '',
+      note: bill.note || '',
+      isPaid: false,
+      paidDate: null,
+      paidWalletId: null,
+      notified1d: false,
+      notified12h: false,
+      notified1h: false,
+      createdAt: Date.now()
+    };
+    state.bills.push(newBill);
+    this.save(state);
+    return newBill;
+  },
+
+  markBillPaid(billId, walletId) {
+    const state = this.load();
+    state.bills = state.bills || [];
+    const bill = state.bills.find(b => b.id === billId);
+    if (!bill || bill.isPaid) return false;
+
+    bill.isPaid = true;
+    bill.paidDate = Utils.today();
+    bill.paidWalletId = walletId;
+    this.save(state);
+
+    // Record automatically as an expense transaction
+    this.addTransaction({
+      type: 'expense',
+      amount: bill.amount,
+      category: 'cat_bills',
+      walletId: walletId,
+      date: Utils.today(),
+      note: `Pelunasan Tagihan: ${bill.title}${bill.note ? ' (' + bill.note + ')' : ''}`
+    });
+
+    return true;
+  },
+
+  deleteBill(billId) {
+    const state = this.load();
+    if (state.bills) {
+      state.bills = state.bills.filter(b => b.id !== billId);
+      this.save(state);
+    }
+  },
+
+  // ── DEADLINE NOTIFICATION POLLER ──
+  checkBillNotifications() {
+    const activeBills = this.getBills({ isPaid: false });
+    if (activeBills.length === 0) return;
+
+    const now = Date.now();
+    let stateChanged = false;
+
+    activeBills.forEach(bill => {
+      if (!bill.dueDate) return;
+      const dueTime = new Date(bill.dueDate).getTime();
+      const diffMs = dueTime - now;
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      // Notification 1: 1 Day (24h) before deadline
+      if (diffHours <= 24 && diffHours > 12 && !bill.notified1d) {
+        bill.notified1d = true;
+        stateChanged = true;
+        this._fireNotification(
+          `📌 Tagihan Besok Deadline: ${bill.title}`,
+          `Tagihan ${bill.title} sejumlah ${Utils.formatRupiah(bill.amount)} akan jatuh tempo dalam 24 jam!`
+        );
+      }
+      // Notification 2: 12 Hours before deadline
+      else if (diffHours <= 12 && diffHours > 1 && !bill.notified12h) {
+        bill.notified12h = true;
+        stateChanged = true;
+        this._fireNotification(
+          `⏰ Tagihan 12 Jam Lagi: ${bill.title}`,
+          `Tagihan ${bill.title} (${Utils.formatRupiah(bill.amount)}) harus dibayar dalam 12 jam!`
+        );
+      }
+      // Notification 3: 1 Hour before deadline
+      else if (diffHours <= 1 && diffHours > 0 && !bill.notified1h) {
+        bill.notified1h = true;
+        stateChanged = true;
+        this._fireNotification(
+          `⚠️ DARURAT: Tagihan 1 Jam Lagi: ${bill.title}`,
+          `Tagihan ${bill.title} (${Utils.formatRupiah(bill.amount)}) akan jatuh tempo dalam 1 jam!`
+        );
+      }
+    });
+
+    if (stateChanged) {
+      const state = this.load();
+      this.save(state);
+    }
+  },
+
+  _fireNotification(title, body) {
+    if (typeof Toast !== 'undefined' && Toast.show) {
+      Toast.show(`${title} — ${body}`, 'warning');
+    }
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, { body, icon: './icon-192.png' });
+      } catch (e) {
+        console.error('Notification error:', e);
+      }
+    }
   },
 
   // Export all data as JSON

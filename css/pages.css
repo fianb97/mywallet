@@ -200,36 +200,43 @@
 }
 
 .wallet-scroll-card__icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-full);
-  background: var(--surface-container-low);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--outline-variant);
-  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-bright);
+}
+
+.wallet-scroll-card__icon .material-symbols-outlined {
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.wallet-scroll-card__icon .material-symbols-outlined {
-  font-size: 24px;
-  color: var(--primary);
+[data-theme="dark"] .wallet-scroll-card__icon {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .wallet-scroll-card__badge {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
+  letter-spacing: 0.08em;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  display: inline-block;
   background: var(--surface-container);
   color: var(--on-surface-variant);
 }
 
 .wallet-scroll-card__name {
   font-size: var(--fs-sm);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--on-surface);
   margin-bottom: 4px;
 }
@@ -237,8 +244,12 @@
 .wallet-scroll-card__balance {
   font-family: var(--font-mono);
   font-size: var(--fs-base);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--primary);
+}
+
+[data-theme="dark"] .wallet-scroll-card__balance {
+  color: #ffffff;
 }
 
 /* Recent Activity */
@@ -254,6 +265,10 @@
 
 .tx-item:hover {
   background: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .tx-item:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .tx-item__left {
@@ -280,14 +295,29 @@
   color: var(--primary-container);
 }
 
+[data-theme="dark"] .tx-item__icon--expense {
+  background: rgba(65, 179, 117, 0.16);
+  color: #41b375;
+}
+
 .tx-item__icon--income {
   background: rgba(102, 187, 106, 0.2);
   color: var(--color-income);
 }
 
+[data-theme="dark"] .tx-item__icon--income {
+  background: rgba(65, 179, 117, 0.25);
+  color: #41b375;
+}
+
 .tx-item__icon--transfer {
   background: var(--surface-variant);
   color: var(--on-surface-variant);
+}
+
+[data-theme="dark"] .tx-item__icon--transfer {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 .tx-item__info {
@@ -445,23 +475,25 @@
 }
 
 /* Transaction Card (per item) */
+/* Transaction Card (per item) */
 .tx-card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
-  border: 1px solid var(--glass-stroke);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  background: var(--surface-bright);
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-sm);
   border-radius: var(--radius-lg);
   padding: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  transition: background var(--duration-fast) ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 72px;
 }
 
 .tx-card:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--surface-container-high);
+  border-color: var(--primary);
 }
 
 .tx-card__left {
@@ -471,15 +503,14 @@
 }
 
 .tx-card__icon {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
-  backdrop-filter: blur(8px);
-  border: 1px solid;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: transform var(--duration-fast) ease;
+  flex-shrink: 0;
 }
 
 .tx-card:hover .tx-card__icon {
@@ -487,25 +518,25 @@
 }
 
 .tx-card__icon .material-symbols-outlined {
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .tx-card__icon--expense {
-  background: rgba(255, 218, 214, 0.6);
-  border-color: var(--error-container);
-  color: var(--error);
+  background: rgba(211, 47, 47, 0.1);
+  border: 1px solid rgba(211, 47, 47, 0.2);
+  color: var(--color-expense);
 }
 
 .tx-card__icon--income {
-  background: rgba(189, 239, 190, 0.8);
-  border-color: var(--secondary-container);
-  color: var(--primary);
+  background: rgba(46, 125, 50, 0.1);
+  border: 1px solid rgba(46, 125, 50, 0.2);
+  color: var(--color-income);
 }
 
 .tx-card__icon--transfer {
-  background: rgba(224, 228, 219, 0.8);
-  border-color: var(--surface-variant);
-  color: var(--on-surface-variant);
+  background: rgba(0, 69, 13, 0.08);
+  border: 1px solid rgba(0, 69, 13, 0.15);
+  color: var(--primary);
 }
 
 .tx-card__info {
@@ -533,9 +564,9 @@
   letter-spacing: 0.05em;
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  color: var(--on-surface-variant);
+  background: rgba(0, 69, 13, 0.06);
+  border: 1px solid rgba(0, 69, 13, 0.12);
+  color: var(--primary);
 }
 
 .tx-card__separator {
@@ -545,7 +576,7 @@
 
 .tx-card__wallet {
   font-size: 12px;
-  color: var(--outline);
+  color: var(--on-surface-variant);
   font-weight: 500;
 }
 
@@ -553,6 +584,54 @@
   font-family: var(--font-mono);
   font-size: var(--fs-base);
   font-weight: 600;
+}
+
+/* Dark Theme Overrides for Transaction Cards */
+[data-theme="dark"] .tx-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .tx-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="dark"] .tx-card__icon--income {
+  background: rgba(65, 179, 117, 0.16);
+  border: 1px solid rgba(65, 179, 117, 0.35);
+  color: #41b375;
+}
+
+[data-theme="dark"] .tx-card__icon--expense {
+  background: rgba(248, 113, 113, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #f87171;
+}
+
+[data-theme="dark"] .tx-card__icon--transfer {
+  background: rgba(148, 163, 184, 0.16);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .tx-card__tag {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="dark"] .tx-card__name {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .tx-card__wallet {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .tx-card__separator {
+  color: #64748b;
 }
 
 /* ────────────────────────────────────────
@@ -571,41 +650,48 @@
   margin-top: 12px;
 }
 
-/* Total Balance Bento Card */
+/* Total Balance Bento Card (Matched exactly with Dashboard Hero Card) */
 .wallet-total-card {
-  background: linear-gradient(135deg, var(--secondary-container) 0%, rgba(162, 211, 164, 0.8) 100%);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-fixed-dim) 100%);
   border-radius: var(--radius-2xl);
-  padding: var(--glass-padding);
+  padding: 24px;
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--glass-stroke-strong);
-  box-shadow: var(--glass-shadow-floating);
+  border: none;
+  box-shadow: 0 8px 24px rgba(60, 104, 66, 0.15);
+  color: #ffffff;
   transition: all 0.3s var(--ease-smooth);
 }
 
+[data-theme="dark"] .wallet-total-card {
+  background: linear-gradient(135deg, #1b4d24 0%, #0d2812 100%);
+  border: 1px solid rgba(65, 179, 117, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
 .wallet-total-card:hover {
-  box-shadow: var(--glass-shadow-hover);
+  box-shadow: 0 12px 28px rgba(60, 104, 66, 0.25);
 }
 
 .wallet-total-card::before {
   content: '';
   position: absolute;
-  top: -24px;
-  right: -24px;
-  width: 128px;
-  height: 128px;
-  background: rgba(102, 187, 106, 0.2);
+  top: -40px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   filter: blur(40px);
   pointer-events: none;
 }
 
 .wallet-total-card__label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--on-secondary-container);
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.9);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -616,13 +702,14 @@
 
 .wallet-total-card__label .material-symbols-outlined {
   font-size: 18px;
+  color: #ffffff;
 }
 
 .wallet-total-card__value {
   font-family: var(--font-mono);
   font-size: 24px;
   font-weight: 700;
-  color: var(--primary);
+  color: #ffffff;
   letter-spacing: -0.05em;
   position: relative;
   z-index: 1;
@@ -635,13 +722,14 @@
   gap: 4px;
   font-family: var(--font-mono);
   font-size: 14px;
-  color: var(--primary);
+  color: rgba(255, 255, 255, 0.9);
   position: relative;
   z-index: 1;
 }
 
 .wallet-total-card__trend .material-symbols-outlined {
   font-size: 16px;
+  color: #ffffff;
 }
 
 /* Wallet Cards Grid */
@@ -696,14 +784,22 @@
 }
 
 .wallet-card__icon {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-bright);
+  flex-shrink: 0;
 }
 
 .wallet-card__icon .material-symbols-outlined {
-  font-size: 24px;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .wallet-card__name {
@@ -717,12 +813,55 @@
   margin-top: 4px;
   padding: 2px 10px;
   border-radius: var(--radius-full);
-  background: rgba(224, 228, 219, 0.8);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--on-surface-variant);
+  background: rgba(0, 69, 13, 0.08);
+  border: 1px solid rgba(0, 69, 13, 0.15);
+  color: var(--primary);
+}
+
+.wallet-card__type--bank {
+  background: rgba(2, 132, 199, 0.12);
+  border: 1px solid rgba(2, 132, 199, 0.25);
+  color: #0284c7;
+}
+
+.wallet-card__type--ewallet {
+  background: rgba(147, 51, 234, 0.12);
+  border: 1px solid rgba(147, 51, 234, 0.25);
+  color: #9333ea;
+}
+
+.wallet-card__type--cash {
+  background: rgba(46, 125, 50, 0.12);
+  border: 1px solid rgba(46, 125, 50, 0.25);
+  color: #2e7d32;
+}
+
+/* Dark Theme Overrides for Active Account Cards & Badges */
+[data-theme="dark"] .wallet-card__icon {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="dark"] .wallet-card__type--bank {
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+[data-theme="dark"] .wallet-card__type--ewallet {
+  background: rgba(192, 132, 252, 0.16);
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  color: #c084fc;
+}
+
+[data-theme="dark"] .wallet-card__type--cash {
+  background: rgba(65, 179, 117, 0.16);
+  border: 1px solid rgba(65, 179, 117, 0.35);
+  color: #41b375;
 }
 
 .wallet-card__menu {
@@ -759,6 +898,14 @@
   letter-spacing: -0.05em;
 }
 
+[data-theme="dark"] .wallet-card__balance {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .wallet-card__balance-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .wallet-card--add {
   display: flex;
   flex-direction: column;
@@ -776,6 +923,18 @@
   color: var(--primary);
   background: var(--surface-bright);
   box-shadow: none;
+}
+
+[data-theme="dark"] .wallet-card--add {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] .wallet-card--add:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary);
+  color: #ffffff;
 }
 
 .wallet-card--add .material-symbols-outlined {
@@ -991,6 +1150,18 @@
   background: rgba(224, 228, 219, 0.5);
 }
 
+[data-theme="dark"] .ai-welcome__prompt-chip {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .ai-welcome__prompt-chip:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
 /* Chat Bubbles */
 .chat-bubble-user {
   display: flex;
@@ -1148,7 +1319,7 @@
   width: 100%;
   z-index: 40;
   padding: 8px 16px;
-  background: linear-gradient(to top, rgba(247, 251, 241, 0.95) 60%, transparent);
+  background: linear-gradient(to top, var(--body-bg) 70%, transparent);
 }
 
 @media (min-width: 768px) {
@@ -1262,4 +1433,36 @@
 
 .settings-item__icon .material-symbols-outlined {
   font-size: 20px;
+}
+
+/* Red Secondary Action Buttons (Hapus Kategori & Import Data) */
+.btn-import-data {
+  color: var(--color-expense);
+  border-color: rgba(211, 47, 47, 0.3);
+}
+
+.btn-import-data:hover {
+  background: rgba(211, 47, 47, 0.08);
+}
+
+[data-theme="dark"] #settings-import-btn,
+[data-theme="dark"] #settings-del-cat-btn,
+[data-theme="dark"] .btn-import-data {
+  background: rgba(248, 113, 113, 0.12) !important;
+  border: 1px solid rgba(248, 113, 113, 0.35) !important;
+  color: #ff5252 !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="dark"] #settings-import-btn .material-symbols-outlined,
+[data-theme="dark"] #settings-del-cat-btn .material-symbols-outlined,
+[data-theme="dark"] .btn-import-data .material-symbols-outlined {
+  color: #ff5252 !important;
+}
+
+[data-theme="dark"] #settings-import-btn:hover,
+[data-theme="dark"] #settings-del-cat-btn:hover,
+[data-theme="dark"] .btn-import-data:hover {
+  background: rgba(248, 113, 113, 0.22) !important;
+  border-color: rgba(248, 113, 113, 0.6) !important;
 }

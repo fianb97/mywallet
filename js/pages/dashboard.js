@@ -3,21 +3,54 @@
 // ========================================
 
 function renderDashboard(container) {
-  const totalBalance = Store.getTotalBalance();
-  const monthlyIncome = Store.getMonthlyIncome();
-  const monthlyExpense = Store.getMonthlyExpense();
-  const wallets = Store.getWallets();
-  const recentTx = Store.getTransactions({}).slice(0, 5);
-  const totalDebt = Store.getTotalDebt();
-  const totalReceivable = Store.getTotalReceivable();
+  // Load state ONCE and compute all needed values from it
+  const state = Store.getState();
+  const wallets = state.wallets;
+  const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
+
+  const now = new Date();
+  const todayStr = Utils.today();
+  const startOfWeekStr = Utils.startOfWeek();
+  const allTx = state.transactions;
+
+  // Daily transactions for today (Pemasukan & Pengeluaran Hari Ini)
+  const dailyTx = allTx.filter(t => t.date === todayStr);
+  const dailyIncome = dailyTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const dailyExpense = dailyTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+  // Weekly expense by category for pie chart (Pengeluaran Minggu Ini)
+  const weeklyExpenseTx = allTx.filter(t => t.type === 'expense' && t.date >= startOfWeekStr && t.date <= todayStr);
+  const expCatMap = {};
+  weeklyExpenseTx.forEach(t => {
+    expCatMap[t.category] = (expCatMap[t.category] || 0) + t.amount;
+  });
+  const expByCategory = Object.entries(expCatMap)
+    .map(([cat, amount]) => ({ category: cat, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  // Recent transactions (last 5)
+  const recentTx = [...allTx].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+
+  // Debt totals
+  const activeDebts = state.debts.filter(d => !d.isPaid);
+  const totalDebt = activeDebts.filter(d => d.type === 'debt').reduce((s, d) => s + d.amount, 0);
+  const totalReceivable = activeDebts.filter(d => d.type === 'receivable').reduce((s, d) => s + d.amount, 0);
   const netDebtBalance = totalReceivable - totalDebt;
   const adjustedBalance = totalBalance + netDebtBalance;
 
+  // Bill totals
+  const activeBills = (state.bills || []).filter(b => !b.isPaid);
+  const totalActiveBills = activeBills.reduce((s, b) => s + b.amount, 0);
+  const balanceAfterBills = totalBalance - totalActiveBills;
+
+  // Cached number formatter
+  const numFmt = Utils._getNumFmt();
+
   function renderExpenseCard() {
-    const expByCategory = Store.getExpenseByCategoryPeriod('daily');
+    const periodText = I18n.getLang() === 'id' ? 'Minggu Ini' : 'This Week';
     return `
       <div class="card__header" style="flex-wrap:wrap;gap:8px;">
-        <span class="card__title">${mIcon('pie_chart')} ${t('expenseDistribution')} (${t('today')})</span>
+        <span class="card__title">${mIcon('pie_chart')} ${t('expenseDistribution')} (${periodText})</span>
       </div>
       <div class="expense-chart-wrap">
         <canvas id="expense-chart"></canvas>
@@ -25,10 +58,11 @@ function renderDashboard(container) {
       ${expByCategory.length === 0 ? `<p style="text-align:center;margin-top:12px;color:var(--on-surface-variant);">${t('noExpensesYet')}</p>` : `
         <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;">
           ${expByCategory.slice(0, 5).map(d => {
-            const cat = CATEGORIES[d.category] || { name: d.category, icon: mIcon('label'), color: '#888' };
+            const cat = CATEGORIES[d.category] || { icon: mIcon('label'), color: '#888' };
+            const catName = Utils.getCategoryName(d.category);
             return `<div style="display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);">
               <span style="color:${cat.color};">${cat.icon}</span>
-              <span style="flex:1;color:var(--on-surface-variant);">${cat.name}</span>
+              <span style="flex:1;color:var(--on-surface-variant);">${catName}</span>
               <span class="mono" style="font-weight:600;">${Utils.formatRupiah(d.amount)}</span>
             </div>`;
           }).join('')}
@@ -43,16 +77,31 @@ function renderDashboard(container) {
       <div class="card__title">${t('totalBalance')}</div>
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:16px;">
         <span class="mono" style="font-size:24px;color:#ffffff;">Rp</span>
-        <div class="card__value mono">${new Intl.NumberFormat('id-ID').format(Math.abs(totalBalance))}</div>
+        <div class="card__value mono">${numFmt.format(Math.abs(totalBalance))}</div>
       </div>
       <div class="flow-row">
         <div class="flow-row__item">
           ${mIcon('arrow_upward')}
-          <span>${t('income')}:<br>${Utils.formatShort(monthlyIncome)}</span>
+          <span>${t('income')} (${I18n.getLang() === 'id' ? 'Hari ini' : 'Today'}):<br>${Utils.formatShort(dailyIncome)}</span>
         </div>
         <div class="flow-row__item">
           ${mIcon('arrow_downward')}
-          <span>${t('expense')}:<br>${Utils.formatShort(monthlyExpense)}</span>
+          <span>${t('expense')} (${I18n.getLang() === 'id' ? 'Hari ini' : 'Today'}):<br>${Utils.formatShort(dailyExpense)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saldo Setelah Tagihan (Glass Card) -->
+    <div class="card card--adjusted section" style="animation: fadeInUp 0.52s var(--ease-out)">
+      <div class="card__title">${mIcon('receipt_long')} ${t('adjustedBalanceAfterBills')}</div>
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <span class="mono" style="color:var(--on-surface);font-size:14px;">Rp</span>
+        <div class="card__value" style="color:${balanceAfterBills >= 0 ? 'var(--on-surface)' : 'var(--color-expense)'};">${numFmt.format(Math.abs(balanceAfterBills))}</div>
+      </div>
+      <div class="adjusted-sub">
+        <div class="adjusted-sub__item">
+          <span class="adjusted-sub__label">${t('totalActiveBillsCard')} (${activeBills.length})</span>
+          <span class="mono text-expense" style="font-weight:500;">- ${Utils.formatShort(totalActiveBills)}</span>
         </div>
       </div>
     </div>
@@ -61,8 +110,8 @@ function renderDashboard(container) {
     <div class="card card--adjusted section" style="animation: fadeInUp 0.55s var(--ease-out)">
       <div class="card__title">${mIcon('account_balance')} ${t('adjustedBalance')}</div>
       <div style="display:flex;align-items:baseline;gap:4px;">
-        <span class="mono" style="color:var(--primary);font-size:14px;">Rp</span>
-        <div class="card__value">${new Intl.NumberFormat('id-ID').format(Math.abs(adjustedBalance))}</div>
+        <span class="mono" style="color:var(--on-surface);font-size:14px;">Rp</span>
+        <div class="card__value">${numFmt.format(Math.abs(adjustedBalance))}</div>
       </div>
       <div class="adjusted-sub">
         <div class="adjusted-sub__item">
@@ -89,12 +138,19 @@ function renderDashboard(container) {
       </div>
       <div class="wallets-scroll">
         ${wallets.length === 0 ? `<p style="color:var(--on-surface-variant);padding:20px;">${t('noWalletsYet')}</p>` : wallets.map(w => {
-          const typeLabel = (WALLET_TYPES[w.type] || { name: 'Other' }).name;
+          const typeLabel = Utils.getWalletTypeName(w.type).toUpperCase();
+          const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+          let iconColor = isDark ? '#38bdf8' : '#0284c7';
+          if (w.type === 'ewallet') iconColor = isDark ? '#c084fc' : '#9333ea';
+          if (w.type === 'cash') iconColor = isDark ? '#41b375' : '#2e7d32';
+
           return `
             <div class="wallet-scroll-card">
               <div class="wallet-scroll-card__top">
-                <div class="wallet-scroll-card__icon">${getWalletIcon(w)}</div>
-                <span class="wallet-scroll-card__badge">${typeLabel}</span>
+                <div class="wallet-scroll-card__icon" style="color:${iconColor};">
+                  <span style="color:${iconColor};display:flex;align-items:center;justify-content:center;">${getWalletIcon(w)}</span>
+                </div>
+                <span class="wallet-scroll-card__badge wallet-card__type--${w.type}">${typeLabel}</span>
               </div>
               <div>
                 <div class="wallet-scroll-card__name">${Utils.escapeHtml(w.name)}</div>
@@ -124,15 +180,15 @@ function renderDashboard(container) {
     </div>
   `;
 
-  // Draw chart for daily expenses
-  const expByCategory = Store.getExpenseByCategoryPeriod('daily');
+  // Draw chart using requestAnimationFrame for smoother paint
   if (expByCategory.length > 0) {
-    drawExpenseChart(expByCategory);
+    requestAnimationFrame(() => drawExpenseChart(expByCategory));
   }
 }
 
 function renderTxRow(tx) {
-  const cat = CATEGORIES[tx.category] || { name: tx.category, icon: mIcon('label'), color: '#888' };
+  const cat = CATEGORIES[tx.category] || { icon: mIcon('label'), color: '#888' };
+  const catName = Utils.getCategoryName(tx.category);
   const wallet = Store.getWallet(tx.walletId);
   const walletName = wallet ? wallet.name : '—';
   const isIncome = tx.type === 'income';
@@ -145,11 +201,11 @@ function renderTxRow(tx) {
       <div class="tx-item__left">
         <div class="tx-item__icon ${iconClass}">${cat.icon}</div>
         <div class="tx-item__info">
-          <span class="tx-item__name">${tx.note ? Utils.escapeHtml(tx.note) : cat.name}</span>
+          <span class="tx-item__name">${tx.note ? Utils.escapeHtml(tx.note) : catName}</span>
           <span class="tx-item__meta">${walletName} • ${Utils.formatRelativeDate(tx.date)}</span>
         </div>
       </div>
-      <span class="tx-item__amount ${amountClass} mono">${sign}${new Intl.NumberFormat('id-ID').format(tx.amount)}</span>
+      <span class="tx-item__amount ${amountClass} mono">${sign}${Utils._getNumFmt().format(tx.amount)}</span>
     </div>
   `;
 }
@@ -163,14 +219,19 @@ function drawExpenseChart(data, targetCanvas = null) {
   const chartContainer = canvas.parentElement;
   const size = Math.min(chartContainer.clientWidth, 220);
 
-  // Colors for chart
-  const colors = data.map(d => {
-    const cat = CATEGORIES[d.category];
-    return cat ? getComputedStyle(document.documentElement).getPropertyValue(cat.color.replace('var(', '').replace(')', '')).trim() || '#7c5cfc' : '#7c5cfc';
-  });
+  // Cache computed styles once (expensive to call per-slice)
+  const rootStyle = getComputedStyle(document.documentElement);
 
-  // Fallback colors if CSS var resolution fails
+  // Colors for chart
   const fallbackColors = ['#fb923c', '#38bdf8', '#e879f9', '#facc15', '#f87171', '#a78bfa', '#34d399', '#94a3b8', '#fb7185', '#f97316'];
+  const colors = data.map((d, i) => {
+    const cat = CATEGORIES[d.category];
+    if (cat) {
+      const resolved = rootStyle.getPropertyValue(cat.color.replace('var(', '').replace(')', '')).trim();
+      return resolved || fallbackColors[i % fallbackColors.length];
+    }
+    return fallbackColors[i % fallbackColors.length];
+  });
 
   const total = data.reduce((s, d) => s + d.amount, 0);
   const dpr = window.devicePixelRatio || 1;
@@ -194,23 +255,25 @@ function drawExpenseChart(data, targetCanvas = null) {
     ctx.arc(cx, cy, innerRadius, endAngle, startAngle, true);
     ctx.closePath();
 
-    const color = colors[i] !== '#7c5cfc' ? colors[i] : (fallbackColors[i % fallbackColors.length]);
-    ctx.fillStyle = color;
+    ctx.fillStyle = colors[i];
     ctx.fill();
 
     startAngle = endAngle;
   });
 
-  // Center text
+  // Center text (use cached rootStyle)
   const mainFontSize = Math.max(12, size * 0.073);
   const subFontSize = Math.max(9, size * 0.05);
 
-  ctx.fillStyle = '#00450d';
+  const textColor = rootStyle.getPropertyValue('--on-surface').trim() || '#ffffff';
+  const subTextColor = rootStyle.getPropertyValue('--on-surface-variant').trim() || '#94a3b8';
+
+  ctx.fillStyle = textColor;
   ctx.font = `bold ${mainFontSize}px 'JetBrains Mono', monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(Utils.formatShort(total), cx, cy - (size * 0.036));
   ctx.font = `${subFontSize}px Inter, sans-serif`;
-  ctx.fillStyle = '#41493e';
+  ctx.fillStyle = subTextColor;
   ctx.fillText('Total', cx, cy + (size * 0.045));
 }

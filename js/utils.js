@@ -3,15 +3,22 @@
 // ========================================
 
 const Utils = {
+  // Cached Intl.NumberFormat singleton (expensive to create)
+  _numFmt: null,
+  _getNumFmt() {
+    if (!this._numFmt) this._numFmt = new Intl.NumberFormat('id-ID');
+    return this._numFmt;
+  },
+
   // Generate unique ID
   id() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   },
 
-  // Format to Rupiah
+  // Format to Rupiah (uses cached formatter)
   formatRupiah(amount, showSign = false) {
     const abs = Math.abs(amount);
-    const formatted = new Intl.NumberFormat('id-ID').format(abs);
+    const formatted = this._getNumFmt().format(abs);
     const sign = showSign ? (amount >= 0 ? '+' : '-') : (amount < 0 ? '-' : '');
     return `${sign}Rp ${formatted}`;
   },
@@ -30,10 +37,25 @@ const Utils = {
     return parseInt(String(str).replace(/[^0-9]/g, ''), 10) || 0;
   },
 
+  // Cached date formatters
+  _dateFmtCache: {},
+  _getDateFmt(locale, options) {
+    const key = locale + JSON.stringify(options);
+    if (!this._dateFmtCache[key]) {
+      this._dateFmtCache[key] = new Intl.DateTimeFormat(locale, options);
+    }
+    return this._dateFmtCache[key];
+  },
+
+  _getLocale() {
+    return (typeof I18n !== 'undefined' && I18n.getLang() === 'en') ? 'en-US' : 'id-ID';
+  },
+
   // Format date
   formatDate(dateStr) {
     const d = new Date(dateStr);
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    const opts = { day: 'numeric', month: 'short', year: 'numeric' };
+    return this._getDateFmt(this._getLocale(), opts).format(d);
   },
 
   // Format relative date
@@ -42,9 +64,9 @@ const Utils = {
     const now = new Date();
     const diffMs = now - d;
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return 'Hari ini';
-    if (diffDays === 1) return 'Kemarin';
-    if (diffDays < 7) return `${diffDays} hari lalu`;
+    if (diffDays === 0) return t('today');
+    if (diffDays === 1) return t('yesterday');
+    if (diffDays < 7) return `${diffDays} ${t('daysAgo')}`;
     return Utils.formatDate(dateStr);
   },
 
@@ -55,9 +77,10 @@ const Utils = {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const diffDays = Math.floor((today - target) / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return 'Hari Ini';
-    if (diffDays === 1) return 'Kemarin';
-    return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (diffDays === 0) return t('today');
+    if (diffDays === 1) return t('yesterday');
+    const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    return this._getDateFmt(this._getLocale(), opts).format(d);
   },
 
   // Get today's date as YYYY-MM-DD (local time)
@@ -71,12 +94,14 @@ const Utils = {
 
   // Get current month & year label
   currentMonthLabel() {
-    return new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    const opts = { month: 'long', year: 'numeric' };
+    return this._getDateFmt(this._getLocale(), opts).format(new Date());
   },
 
   // Get long date string
   longDate() {
-    return new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    return this._getDateFmt(this._getLocale(), opts).format(new Date());
   },
 
   // Check if date is in current month
@@ -98,11 +123,13 @@ const Utils = {
     return `${year}-${month}-${d}`;
   },
 
-  // Escape HTML to prevent XSS
+  // Escape HTML to prevent XSS (reuses a single element)
+  _escapeEl: null,
   escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    if (!str) return '';
+    if (!this._escapeEl) this._escapeEl = document.createElement('span');
+    this._escapeEl.textContent = str;
+    return this._escapeEl.innerHTML;
   },
 
   // Debounce
@@ -214,3 +241,21 @@ const WALLET_TYPES = {
   ewallet: { name: 'E-Wallet', icon: Icons.wallet_ewallet },
   cash:    { name: 'Cash', icon: Icons.wallet_cash },
 };
+
+// Helper to get translated category name
+Utils.getCategoryName = function(key) {
+  const cat = CATEGORIES[key];
+  if (!cat) return key || '';
+  if (cat.isCustom) return cat.name;
+  const translated = t('cat_' + key);
+  return (translated && translated !== 'cat_' + key) ? translated : cat.name;
+};
+
+// Helper to get translated wallet type name
+Utils.getWalletTypeName = function(typeKey) {
+  const wt = WALLET_TYPES[typeKey];
+  if (!wt) return typeKey || '';
+  const translated = t('walletType_' + typeKey);
+  return (translated && translated !== 'walletType_' + typeKey) ? translated : wt.name;
+};
+

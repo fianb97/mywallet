@@ -35,11 +35,19 @@ function renderWallets(container) {
       <h3 style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--on-surface);margin-bottom:16px;padding:0 8px;">${t('activeAccounts')}</h3>
       <div class="grid-auto">
         ${wallets.map(w => {
-          const typeLabel = (WALLET_TYPES[w.type] || { name: 'OTHER' }).name.toUpperCase();
-          let blobBg = 'rgba(0,91,170,0.1)';
-          let iconColor = '#005baa';
-          if (w.type === 'ewallet') { blobBg = 'rgba(76,52,148,0.1)'; iconColor = '#4c3494'; }
-          if (w.type === 'cash') { blobBg = 'rgba(0,69,13,0.1)'; iconColor = 'var(--primary)'; }
+          const typeLabel = Utils.getWalletTypeName(w.type).toUpperCase();
+          const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+          let blobBg = 'rgba(2,132,199,0.1)';
+          let iconColor = isDark ? '#38bdf8' : '#0284c7';
+
+          if (w.type === 'ewallet') { 
+            blobBg = 'rgba(147,51,234,0.1)'; 
+            iconColor = isDark ? '#c084fc' : '#9333ea'; 
+          }
+          if (w.type === 'cash') { 
+            blobBg = 'rgba(46,125,50,0.1)'; 
+            iconColor = isDark ? '#41b375' : '#2e7d32'; 
+          }
 
           return `
             <div class="wallet-card" data-wallet-id="${w.id}">
@@ -47,11 +55,11 @@ function renderWallets(container) {
               <div class="wallet-card__top">
                 <div class="wallet-card__top-left">
                   <div class="wallet-card__icon">
-                    <span style="color:${iconColor};">${getWalletIcon(w)}</span>
+                    <span style="color:${iconColor};display:flex;align-items:center;justify-content:center;">${getWalletIcon(w)}</span>
                   </div>
                   <div>
                     <div class="wallet-card__name">${Utils.escapeHtml(w.name)}</div>
-                    <span class="wallet-card__type">${typeLabel}</span>
+                    <span class="wallet-card__type wallet-card__type--${w.type}">${typeLabel}</span>
                   </div>
                 </div>
                 <button class="wallet-card__menu">${mIcon('more_vert')}</button>
@@ -67,7 +75,7 @@ function renderWallets(container) {
         <!-- Add New Wallet Card -->
         <div class="wallet-card wallet-card--add" id="card-add-wallet">
           ${mIcon('add_circle')}
-          <span>Create New Wallet</span>
+          <span>${t('createNewWallet')}</span>
         </div>
       </div>
     </div>
@@ -88,27 +96,27 @@ function renderWallets(container) {
       Modal.open(`${Utils.escapeHtml(w.name)}`, `
         <div style="text-align:center;margin-bottom:20px;">
           <div class="mono" style="font-size:var(--fs-2xl);font-weight:700;color:var(--primary);">${Utils.formatRupiah(w.balance)}</div>
-          <div style="font-size:12px;color:var(--outline);margin-top:4px;font-weight:700;text-transform:uppercase;">${(WALLET_TYPES[w.type] || {}).name}</div>
+          <div style="font-size:12px;color:var(--outline);margin-top:4px;font-weight:700;text-transform:uppercase;">${Utils.getWalletTypeName(w.type)}</div>
         </div>
         <div class="divider"></div>
-        <h4 style="margin-bottom:12px;font-size:14px;font-weight:600;color:var(--on-surface);">Riwayat Transaksi</h4>
-        ${txs.length === 0 ? '<p style="color:var(--outline);font-size:var(--fs-sm);">Belum ada transaksi</p>' :
+        <h4 style="margin-bottom:12px;font-size:14px;font-weight:600;color:var(--on-surface);">${t('transactionHistory')}</h4>
+        ${txs.length === 0 ? `<p style="color:var(--outline);font-size:var(--fs-sm);">${t('noTxYet')}</p>` :
           txs.map(tx => renderTxRow(tx)).join('')}
       `, {
         footerHtml: `
-          <button class="btn btn--danger btn--sm" id="modal-del-wallet">${mIcon('delete')} Hapus</button>
-          <button class="btn btn--secondary btn--sm" onclick="Modal.close()">Tutup</button>
+          <button class="btn btn--danger btn--sm" id="modal-del-wallet">${mIcon('delete')} ${t('delete')}</button>
+          <button class="btn btn--secondary btn--sm" onclick="Modal.close()">${t('close')}</button>
         `,
         onOpen() {
           document.getElementById('modal-del-wallet').addEventListener('click', () => {
             if (w.balance !== 0) {
-              Toast.show('Tidak bisa menghapus dompet dengan saldo != 0', 'warning');
+              Toast.show(t('cannotDeleteWalletWithBalance'), 'warning');
               return;
             }
             Store.deleteWallet(wId);
             Modal.close();
             renderWallets(container);
-            Toast.show(`${w.name} dihapus`, 'success');
+            Toast.show(`${w.name} ${t('walletDeleted')}`, 'success');
           });
         }
       });
@@ -117,13 +125,13 @@ function renderWallets(container) {
 }
 
 function openAddWalletForm(preType = '') {
-  Modal.open('Tambah Dompet', `
+  Modal.open(t('addWallet'), `
     <div class="form-group">
-      <label class="form-group__label">Nama Dompet</label>
-      <input type="text" id="wf-name" placeholder="Contoh: BCA, ShopeePay...">
+      <label class="form-group__label">${t('walletName')}</label>
+      <input type="text" id="wf-name" placeholder="${t('walletNamePlaceholder')}">
     </div>
     <div class="form-group">
-      <label class="form-group__label">Jenis</label>
+      <label class="form-group__label">${t('walletTypeLabel')}</label>
       <select id="wf-type">
         <option value="bank" ${preType === 'bank' ? 'selected' : ''}>Bank</option>
         <option value="ewallet" ${preType === 'ewallet' ? 'selected' : ''}>E-Wallet</option>
@@ -131,11 +139,11 @@ function openAddWalletForm(preType = '') {
       </select>
     </div>
     <div class="form-group">
-      <label class="form-group__label">Saldo Awal (Rp)</label>
+      <label class="form-group__label">${t('initialBalance')}</label>
       <input type="text" id="wf-balance" placeholder="Rp 0" inputmode="numeric" style="font-family:var(--font-mono);">
     </div>
   `, {
-    footerHtml: `<button class="btn btn--primary btn--full" id="wf-save">💾 Simpan</button>`,
+    footerHtml: `<button class="btn btn--primary btn--full" id="wf-save">💾 ${t('save')}</button>`,
     onOpen(overlay) {
       const balInput = overlay.querySelector('#wf-balance');
       balInput.addEventListener('input', (e) => {
@@ -148,12 +156,12 @@ function openAddWalletForm(preType = '') {
         const type = overlay.querySelector('#wf-type').value;
         const balance = Utils.parseRupiah(balInput.value);
 
-        if (!name) { Toast.show('Masukkan nama dompet', 'warning'); return; }
+        if (!name) { Toast.show(t('enterWalletName'), 'warning'); return; }
 
         Store.addWallet({ name, type, balance, icon: WALLET_TYPES[type].icon });
         Modal.close();
         Router.handleRoute();
-        Toast.show(`${name} ditambahkan!`, 'success');
+        Toast.show(`${name} ${t('walletAdded')}`, 'success');
       });
     }
   });
@@ -161,27 +169,27 @@ function openAddWalletForm(preType = '') {
 
 function openTransferForm() {
   const wallets = Store.getWallets();
-  if (wallets.length < 2) { Toast.show('Minimal 2 dompet untuk transfer', 'warning'); return; }
+  if (wallets.length < 2) { Toast.show(t('minTwoWalletsForTransfer'), 'warning'); return; }
 
-  Modal.open('Transfer Antar Dompet', `
+  Modal.open(t('transferBetweenWallets'), `
     <div class="form-group">
-      <label class="form-group__label">Dari</label>
+      <label class="form-group__label">${t('fromWallet')}</label>
       <select id="tf-from">
         ${wallets.map(w => `<option value="${w.id}">${Utils.escapeHtml(w.name)} (${Utils.formatRupiah(w.balance)})</option>`).join('')}
       </select>
     </div>
     <div class="form-group">
-      <label class="form-group__label">Ke</label>
+      <label class="form-group__label">${t('toWallet')}</label>
       <select id="tf-to">
         ${wallets.map((w, i) => `<option value="${w.id}" ${i === 1 ? 'selected' : ''}>${Utils.escapeHtml(w.name)}</option>`).join('')}
       </select>
     </div>
     <div class="form-group">
-      <label class="form-group__label">Jumlah (Rp)</label>
+      <label class="form-group__label">${t('amountRp')}</label>
       <input type="text" id="tf-amount" placeholder="Rp 0" inputmode="numeric" style="font-family:var(--font-mono);">
     </div>
   `, {
-    footerHtml: `<button class="btn btn--primary btn--full" id="tf-save">${mIcon('sync_alt')} Transfer</button>`,
+    footerHtml: `<button class="btn btn--primary btn--full" id="tf-save">${mIcon('sync_alt')} ${t('transfer')}</button>`,
     onOpen(overlay) {
       overlay.querySelector('#tf-amount').addEventListener('input', (e) => {
         const v = Utils.parseRupiah(e.target.value);
@@ -193,15 +201,15 @@ function openTransferForm() {
         const toId = overlay.querySelector('#tf-to').value;
         const amount = Utils.parseRupiah(overlay.querySelector('#tf-amount').value);
 
-        if (fromId === toId) { Toast.show('Pilih dompet yang berbeda', 'warning'); return; }
-        if (!amount || amount <= 0) { Toast.show('Masukkan jumlah', 'warning'); return; }
+        if (fromId === toId) { Toast.show(t('sameWalletError'), 'warning'); return; }
+        if (!amount || amount <= 0) { Toast.show(t('invalidAmount'), 'warning'); return; }
 
         const ok = Store.transfer(fromId, toId, amount);
-        if (!ok) { Toast.show('Saldo tidak cukup', 'error'); return; }
+        if (!ok) { Toast.show(t('insufficientBalance'), 'error'); return; }
 
         Modal.close();
         Router.handleRoute();
-        Toast.show(`Transfer ${Utils.formatRupiah(amount)} berhasil! ✅`, 'success');
+        Toast.show(`Transfer ${Utils.formatRupiah(amount)} ${t('transferSuccess')}`, 'success');
       });
     }
   });

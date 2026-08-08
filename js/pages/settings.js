@@ -80,6 +80,26 @@ function renderSettings(container) {
         </div>
       </div>
 
+      <!-- Category Management Card -->
+      <div class="card" style="padding:24px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="color:var(--primary);font-size:24px;">${mIcon('category')}</div>
+          <div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--on-surface);margin:0;">${t('categoryManagement')}</h3>
+            <span style="font-size:12px;color:var(--outline);">${t('categoryMgmtDesc')}</span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button type="button" class="btn btn--primary" id="settings-add-cat-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;">
+            ${mIcon('add')} ${t('addCategoryNew')}
+          </button>
+          <button type="button" class="btn btn--secondary btn-import-data" id="settings-del-cat-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;">
+            ${mIcon('delete')} ${t('deleteCustomCategoryBtn')}
+          </button>
+        </div>
+      </div>
+
       <!-- Data Backup & Restore Card -->
       <div class="card" style="padding:24px;">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
@@ -96,7 +116,7 @@ function renderSettings(container) {
           </button>
 
           <input type="file" id="settings-import-file" accept=".json" style="display:none;">
-          <button class="btn btn--secondary" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;" id="settings-import-btn">
+          <button class="btn btn--secondary btn-import-data" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;" id="settings-import-btn">
             ${mIcon('upload')} Import Data (Restore JSON)
           </button>
         </div>
@@ -145,6 +165,25 @@ function renderSettings(container) {
       Toast.show(newLang === 'id' ? 'Bahasa diubah ke Bahasa Indonesia 🇮🇩' : 'Language changed to English 🇬🇧', 'success');
     });
   });
+
+  // Category management events
+  const addCatBtn = container.querySelector('#settings-add-cat-btn');
+  if (addCatBtn) {
+    addCatBtn.addEventListener('click', () => {
+      if (typeof openAddCategoryModal === 'function') {
+        openAddCategoryModal('expense');
+      }
+    });
+  }
+
+  const delCatBtn = container.querySelector('#settings-del-cat-btn');
+  if (delCatBtn) {
+    delCatBtn.addEventListener('click', () => {
+      if (typeof openDeleteCategoryModal === 'function') {
+        openDeleteCategoryModal('expense');
+      }
+    });
+  }
 
   // Export data
   container.querySelector('#settings-export-btn').addEventListener('click', () => {

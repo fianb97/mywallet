@@ -177,10 +177,12 @@ function renderTransactions(container) {
     return getYearsOfHistory();
   }
 
-  // ── Filter transactions for a date range ──
+  let searchQuery = '';
+  let cachedAllTxs = [];
+
+  // ── Filter transactions for a date range (uses cached dataset) ──
   function getTxForRange(startStr, endStr) {
-    let txs = Store.getTransactions(currentFilter);
-    return txs.filter(t => t.date >= startStr && t.date <= endStr);
+    return cachedAllTxs.filter(t => t.date >= startStr && t.date <= endStr);
   }
 
   // ── Render a period group card ──
@@ -193,7 +195,7 @@ function renderTransactions(container) {
 
     if (!hasTx) return ''; // Hide empty period groups for a clean view
 
-    const balanceFormatted = (balance >= 0 ? '+' : '-') + 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.abs(balance));
+    const balanceFormatted = (balance >= 0 ? '+' : '-') + 'Rp ' + Utils._getNumFmt().format(Math.abs(balance));
     const balanceClass = balance >= 0 ? 'text-income' : 'text-expense';
 
     // ── YEARLY VIEW: Summary Card with Drill-Down to Monthly View & Chart ──
@@ -219,11 +221,11 @@ function renderTransactions(container) {
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--outline-variant);flex-wrap:wrap;gap:8px;">
             <div>
               <span style="display:block;font-size:10px;font-weight:700;color:var(--outline);text-transform:uppercase;letter-spacing:0.05em;">${t('income')}</span>
-              <span class="mono text-income" style="font-weight:600;font-size:14px;">+Rp ${new Intl.NumberFormat('id-ID').format(income)}</span>
+              <span class="mono text-income" style="font-weight:600;font-size:14px;">+Rp ${Utils._getNumFmt().format(income)}</span>
             </div>
             <div>
               <span style="display:block;font-size:10px;font-weight:700;color:var(--outline);text-transform:uppercase;letter-spacing:0.05em;">${t('expense')}</span>
-              <span class="mono text-expense" style="font-weight:600;font-size:14px;">-Rp ${new Intl.NumberFormat('id-ID').format(expense)}</span>
+              <span class="mono text-expense" style="font-weight:600;font-size:14px;">-Rp ${Utils._getNumFmt().format(expense)}</span>
             </div>
             <div style="text-align:right;">
               <span style="display:block;font-size:10px;font-weight:700;color:var(--outline);text-transform:uppercase;letter-spacing:0.05em;">${t('netBalance')}</span>
@@ -257,11 +259,11 @@ function renderTransactions(container) {
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--outline-variant);flex-wrap:wrap;gap:8px;">
             <div>
               <span style="display:block;font-size:10px;font-weight:700;color:var(--outline);text-transform:uppercase;letter-spacing:0.05em;">${t('income')}</span>
-              <span class="mono text-income" style="font-weight:600;font-size:14px;">+Rp ${new Intl.NumberFormat('id-ID').format(income)}</span>
+              <span class="mono text-income" style="font-weight:600;font-size:14px;">+Rp ${Utils._getNumFmt().format(income)}</span>
             </div>
             <div>
               <span style="display:block;font-size:10px;font-weight:700;color:var(--outline);text-transform:uppercase;letter-spacing:0.05em;">${t('expense')}</span>
-              <span class="mono text-expense" style="font-weight:600;font-size:14px;">-Rp ${new Intl.NumberFormat('id-ID').format(expense)}</span>
+              <span class="mono text-expense" style="font-weight:600;font-size:14px;">-Rp ${Utils._getNumFmt().format(expense)}</span>
             </div>
             <div style="text-align:right;">
               <span style="display:block;font-size:10px;font-weight:700;color:var(--outline);text-transform:uppercase;letter-spacing:0.05em;">${t('netBalance')}</span>
@@ -295,11 +297,11 @@ function renderTransactions(container) {
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--outline-variant);flex-wrap:wrap;gap:8px;">
             <div>
               <span style="display:block;font-size:10px;font-weight:700;color:var(--outline);text-transform:uppercase;letter-spacing:0.05em;">${t('income')}</span>
-              <span class="mono text-income" style="font-weight:600;font-size:14px;">+Rp ${new Intl.NumberFormat('id-ID').format(income)}</span>
+              <span class="mono text-income" style="font-weight:600;font-size:14px;">+Rp ${Utils._getNumFmt().format(income)}</span>
             </div>
             <div>
               <span style="display:block;font-size:10px;font-weight:700;color:var(--outline);text-transform:uppercase;letter-spacing:0.05em;">${t('expense')}</span>
-              <span class="mono text-expense" style="font-weight:600;font-size:14px;">-Rp ${new Intl.NumberFormat('id-ID').format(expense)}</span>
+              <span class="mono text-expense" style="font-weight:600;font-size:14px;">-Rp ${Utils._getNumFmt().format(expense)}</span>
             </div>
             <div style="text-align:right;">
               <span style="display:block;font-size:10px;font-weight:700;color:var(--outline);text-transform:uppercase;letter-spacing:0.05em;">${t('netBalance')}</span>
@@ -345,7 +347,8 @@ function renderTransactions(container) {
   }
 
   function renderTxCard(tx) {
-    const cat = CATEGORIES[tx.category] || { name: tx.category, icon: mIcon('label') };
+    const cat = CATEGORIES[tx.category] || { icon: mIcon('label') };
+    const catName = Utils.getCategoryName(tx.category);
     const wallet = Store.getWallet(tx.walletId);
     const walletName = wallet ? wallet.name : '—';
     const isIncome = tx.type === 'income';
@@ -379,7 +382,7 @@ function renderTransactions(container) {
             </div>
           </div>
         </div>
-        <span class="tx-card__amount ${amountClass} mono">${sign}${new Intl.NumberFormat('id-ID').format(tx.amount)}</span>
+        <span class="tx-card__amount ${amountClass} mono">${sign}${Utils._getNumFmt().format(tx.amount)}</span>
       </div>
     `;
   }
@@ -389,13 +392,17 @@ function renderTransactions(container) {
     const wallets = Store.getWallets();
     const groups = getPeriodGroups();
 
-    // Calculate grand totals for the visible period range
-    const minStart = groups[groups.length - 1]?.startStr || '';
-    const maxEnd = groups[0]?.endStr || '';
-    const allTxs = getTxForRange(minStart, maxEnd);
-    const totalIncome = allTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const totalExpense = allTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const totalBalance = totalIncome - totalExpense;
+    // Cache filtered dataset ONCE per render cycle
+    cachedAllTxs = Store.getTransactions(currentFilter);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      cachedAllTxs = cachedAllTxs.filter(t => {
+        const catName = Utils.getCategoryName(t.category).toLowerCase();
+        const note = (t.note || '').toLowerCase();
+        const amt = String(t.amount);
+        return catName.includes(q) || note.includes(q) || amt.includes(q);
+      });
+    }
 
     container.innerHTML = `
       <!-- Header Section -->
@@ -419,7 +426,7 @@ function renderTransactions(container) {
       <div class="card section" style="animation:fadeInUp .4s var(--ease-out);padding:12px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <button class="btn btn--ghost btn--icon" id="nav-prev">${mIcon('chevron_left')}</button>
-          <span style="font-family:var(--font-mono);font-weight:700;font-size:16px;color:var(--primary);">${getNavLabel()}</span>
+          <span style="font-family:var(--font-mono);font-weight:700;font-size:16px;color:var(--on-surface);">${getNavLabel()}</span>
           <button class="btn btn--ghost btn--icon" id="nav-next">${mIcon('chevron_right')}</button>
         </div>
       </div>
@@ -429,7 +436,7 @@ function renderTransactions(container) {
         <!-- Search Input -->
         <div class="search-input">
           ${mIcon('search')}
-          <input type="text" id="tx-search-input" placeholder="${t('searchPlaceholder')}">
+          <input type="text" id="tx-search-input" placeholder="${t('searchPlaceholder')}" value="${Utils.escapeHtml(searchQuery)}">
         </div>
         <!-- Filter Chips Bar -->
         <div class="filter-chips">
@@ -453,6 +460,20 @@ function renderTransactions(container) {
     `;
 
     // ── Bind Events ──
+
+    // Debounced search input
+    const searchInp = container.querySelector('#tx-search-input');
+    if (searchInp) {
+      searchInp.addEventListener('input', Utils.debounce((e) => {
+        searchQuery = e.target.value.trim();
+        render();
+        const updatedInp = container.querySelector('#tx-search-input');
+        if (updatedInp) {
+          updatedInp.focus();
+          updatedInp.selectionStart = updatedInp.selectionEnd = updatedInp.value.length;
+        }
+      }, 250));
+    }
 
     // Period tab switch
     container.querySelectorAll('#period-tabs .tab-switcher__tab').forEach(tab => {
@@ -478,93 +499,87 @@ function renderTransactions(container) {
       render();
     });
 
-    // Toggle expand/collapse
-    container.querySelectorAll('.tx-group__header').forEach(header => {
-      header.addEventListener('click', (e) => {
-        if (e.target.closest('.tx-card')) return;
-        const idx = parseInt(header.dataset.toggle);
-        if (collapsedGroups.has(idx)) {
-          collapsedGroups.delete(idx);
-        } else {
-          collapsedGroups.add(idx);
-        }
-        render();
-      });
-    });
-
-    // Click on period chart button (Year, Month, Week) to view diagram modal
-    container.querySelectorAll('.period-chart-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    // Delegated click handler for transaction cards, charts, and group toggles
+    container.addEventListener('click', (e) => {
+      const txCard = e.target.closest('.tx-card');
+      if (txCard) {
         e.stopPropagation();
-        const startDate = btn.dataset.startDate;
-        const endDate = btn.dataset.endDate;
-        const label = btn.dataset.label;
-        const pType = btn.dataset.type || '';
+        const txId = txCard.dataset.txId;
+        const tx = cachedAllTxs.find(t => t.id === txId);
+        if (tx) showTxDetail(tx);
+        return;
+      }
+
+      const chartBtn = e.target.closest('.period-chart-btn');
+      if (chartBtn) {
+        e.stopPropagation();
+        const startDate = chartBtn.dataset.startDate;
+        const endDate = chartBtn.dataset.endDate;
+        const label = chartBtn.dataset.label;
+        const pType = chartBtn.dataset.type || '';
         if (startDate && endDate) {
           openPeriodChartModal(startDate, endDate, label, pType);
         }
-      });
-    });
+        return;
+      }
 
-    // Click on year summary card or drill button to drill down to Monthly view
-    container.querySelectorAll('.year-drill-btn, .year-summary-card').forEach(elem => {
-      elem.addEventListener('click', (e) => {
-        if (e.target.closest('.period-chart-btn')) return;
-        const startDate = elem.dataset.startDate;
+      const yearElem = e.target.closest('.year-drill-btn, .year-summary-card');
+      if (yearElem) {
+        const startDate = yearElem.dataset.startDate;
         if (startDate) {
           navDate = parseLocalYYYYMMDD(startDate);
           currentPeriod = 'monthly';
           collapsedGroups.clear();
           render();
         }
-      });
-    });
+        return;
+      }
 
-    // Click on month summary card or drill button to drill down to Weekly view
-    container.querySelectorAll('.month-drill-btn, .month-summary-card').forEach(elem => {
-      elem.addEventListener('click', (e) => {
-        if (e.target.closest('.period-chart-btn')) return;
-        const startDate = elem.dataset.startDate;
+      const monthElem = e.target.closest('.month-drill-btn, .month-summary-card');
+      if (monthElem) {
+        const startDate = monthElem.dataset.startDate;
         if (startDate) {
           navDate = parseLocalYYYYMMDD(startDate);
           currentPeriod = 'weekly';
           collapsedGroups.clear();
           render();
         }
-      });
-    });
+        return;
+      }
 
-    // Click on week summary card or drill button to drill down to Daily view
-    container.querySelectorAll('.week-drill-btn, .week-summary-card').forEach(elem => {
-      elem.addEventListener('click', (e) => {
-        if (e.target.closest('.period-chart-btn')) return;
-        const startDate = elem.dataset.startDate;
+      const weekElem = e.target.closest('.week-drill-btn, .week-summary-card');
+      if (weekElem) {
+        const startDate = weekElem.dataset.startDate;
         if (startDate) {
           navDate = parseLocalYYYYMMDD(startDate);
           currentPeriod = 'daily';
           collapsedGroups.clear();
           render();
         }
-      });
-    });
+        return;
+      }
 
-    // Click on tx card for detail
-    container.querySelectorAll('.tx-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const txId = card.dataset.txId;
-        if (!txId) return;
-        const tx = Store.getTransactions({}).find(t => t.id === txId);
-        if (!tx) return;
-        showTxDetail(tx);
-      });
+      const header = e.target.closest('.tx-group__header');
+      if (header) {
+        const idx = parseInt(header.dataset.toggle, 10);
+        if (!isNaN(idx)) {
+          if (collapsedGroups.has(idx)) {
+            collapsedGroups.delete(idx);
+          } else {
+            collapsedGroups.add(idx);
+          }
+          render();
+        }
+        return;
+      }
     });
   }
 
   // ── Transaction Detail Modal ──
   function showTxDetail(tx) {
-    const cat = CATEGORIES[tx.category] || { name: tx.category, icon: mIcon('label') };
-    Modal.open('Detail Transaksi', `
+    const cat = CATEGORIES[tx.category] || { icon: mIcon('label') };
+    const catName = Utils.getCategoryName(tx.category);
+    Modal.open(t('activity'), `
       <div style="text-align:center;margin-bottom:20px;">
         <div style="font-size:48px;margin-bottom:8px;color:var(--primary);">${cat.icon}</div>
         <div class="mono" style="font-size:var(--fs-2xl);font-weight:700;color:${tx.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)'}">
@@ -572,10 +587,10 @@ function renderTransactions(container) {
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;">
-        <div style="display:flex;justify-content:space-between;"><span class="text-secondary">Kategori</span><span>${cat.name}</span></div>
-        <div style="display:flex;justify-content:space-between;"><span class="text-secondary">Dompet</span><span>${(Store.getWallet(tx.walletId) || {}).name || '—'}</span></div>
-        <div style="display:flex;justify-content:space-between;"><span class="text-secondary">Tanggal</span><span>${Utils.formatDate(tx.date)}</span></div>
-        ${tx.note ? `<div style="display:flex;justify-content:space-between;"><span class="text-secondary">Catatan</span><span>${Utils.escapeHtml(tx.note)}</span></div>` : ''}
+        <div style="display:flex;justify-content:space-between;"><span class="text-secondary">${t('selectCategory')}</span><span>${catName}</span></div>
+        <div style="display:flex;justify-content:space-between;"><span class="text-secondary">${t('wallets')}</span><span>${(Store.getWallet(tx.walletId) || {}).name || '—'}</span></div>
+        <div style="display:flex;justify-content:space-between;"><span class="text-secondary">${t('dateLabel')}</span><span>${Utils.formatDate(tx.date)}</span></div>
+        ${tx.note ? `<div style="display:flex;justify-content:space-between;"><span class="text-secondary">${t('noteLabel')}</span><span>${Utils.escapeHtml(tx.note)}</span></div>` : ''}
       </div>
     `, {
       footerHtml: `
@@ -643,14 +658,15 @@ function renderTransactions(container) {
       ${expByCategory.length > 0 ? `
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;max-height:180px;overflow-y:auto;padding-right:4px;">
           ${expByCategory.map(d => {
-            const cat = CATEGORIES[d.category] || { name: d.category, icon: mIcon('label'), color: '#888' };
+            const cat = CATEGORIES[d.category] || { icon: mIcon('label'), color: '#888' };
+            const catName = Utils.getCategoryName(d.category);
             const pct = Math.round((d.amount / totalExpense) * 100) || 0;
             return `
               <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:var(--radius-md);background:var(--surface);">
                 <div style="color:${cat.color};font-size:20px;">${cat.icon}</div>
                 <div style="flex:1;">
                   <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;">
-                    <span>${cat.name}</span>
+                    <span>${catName}</span>
                     <span class="mono">${Utils.formatRupiah(d.amount)} (${pct}%)</span>
                   </div>
                   <div style="width:100%;height:4px;background:var(--outline-variant);border-radius:2px;margin-top:4px;overflow:hidden;">
@@ -715,29 +731,29 @@ function openTransactionForm(prefill = {}) {
     return `
       <div class="form-group">
         <div class="tab-switcher" id="tx-type-tabs">
-          <button class="tab-switcher__tab ${selectedType === 'expense' ? 'active' : ''}" data-type="expense">Pengeluaran</button>
-          <button class="tab-switcher__tab ${selectedType === 'income' ? 'active' : ''}" data-type="income">Pemasukan</button>
-          <button class="tab-switcher__tab ${selectedType === 'transfer' ? 'active' : ''}" data-type="transfer">Transfer</button>
+          <button class="tab-switcher__tab ${selectedType === 'expense' ? 'active' : ''}" data-type="expense">${t('expense')}</button>
+          <button class="tab-switcher__tab ${selectedType === 'income' ? 'active' : ''}" data-type="income">${t('income')}</button>
+          <button class="tab-switcher__tab ${selectedType === 'transfer' ? 'active' : ''}" data-type="transfer">${t('transfer')}</button>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-group__label">Jumlah (Rp)</label>
+        <label class="form-group__label">${t('amountRp')}</label>
         <input type="text" id="tx-amount" placeholder="Rp 0" inputmode="numeric" value="${prefill.amount ? 'Rp ' + new Intl.NumberFormat('id-ID').format(prefill.amount) : ''}" style="font-family:var(--font-mono);font-size:var(--fs-xl);text-align:center;font-weight:700;">
       </div>
 
       ${isTransfer ? `
         <div class="form-group">
-          <label class="form-group__label">Dari Dompet</label>
+          <label class="form-group__label">${t('fromWallet')}</label>
           <select id="tf-from" style="width:100%;">
-            <option value="">-- Pilih dompet asal --</option>
+            <option value="">${t('selectSourceWallet')}</option>
             ${Store.getWallets().map(w => `<option value="${w.id}" ${w.id === transferFromId ? 'selected' : ''}>${Utils.escapeHtml(w.name)} (${Utils.formatRupiah(w.balance)})</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
-          <label class="form-group__label">Ke Dompet</label>
+          <label class="form-group__label">${t('toWallet')}</label>
           <select id="tf-to" style="width:100%;">
-            <option value="">-- Pilih dompet tujuan --</option>
+            <option value="">${t('selectTargetWallet')}</option>
             ${Store.getWallets().map(w => `<option value="${w.id}" ${w.id === transferToId ? 'selected' : ''}>${Utils.escapeHtml(w.name)}</option>`).join('')}
           </select>
         </div>
@@ -752,19 +768,19 @@ function openTransactionForm(prefill = {}) {
       `}
 
       <div class="form-group">
-        <label class="form-group__label">Tanggal</label>
+        <label class="form-group__label">${t('dateLabel')}</label>
         <input type="date" id="tx-date" value="${prefill.date || Utils.today()}">
       </div>
 
       <div class="form-group">
-        <label class="form-group__label">Catatan (opsional)</label>
-        <input type="text" id="tx-note" placeholder="${isTransfer ? 'Transfer dana antar dompet...' : 'Makan siang di kantin...'}" value="${prefill.note || ''}">
+        <label class="form-group__label">${t('noteLabel')}</label>
+        <input type="text" id="tx-note" placeholder="${isTransfer ? t('noteTransferPlaceholder') : t('noteExpensePlaceholder')}" value="${prefill.note || ''}">
       </div>
     `;
   }
 
-  const modalTitle = isEdit ? 'Edit Transaksi' : 'Catat Transaksi';
-  const saveLabel = isEdit ? '💾 Simpan Perubahan' : '💾 Simpan';
+  const modalTitle = isEdit ? t('editTx') : t('recordTx');
+  const saveLabel = isEdit ? t('saveChanges') : `💾 ${t('save')}`;
 
   Modal.open(modalTitle, getFormHtml(), {
     footerHtml: `<button class="btn btn--primary btn--full" id="tx-save-btn">${saveLabel}</button>`,
@@ -782,7 +798,7 @@ function openTransactionForm(prefill = {}) {
         if (amtInput) {
           amtInput.addEventListener('input', (e) => {
             const val = Utils.parseRupiah(e.target.value);
-            e.target.value = val > 0 ? 'Rp ' + new Intl.NumberFormat('id-ID').format(val) : '';
+            e.target.value = val > 0 ? 'Rp ' + Utils._getNumFmt().format(val) : '';
           });
           amtInput.focus();
         }
@@ -798,10 +814,7 @@ function openTransactionForm(prefill = {}) {
           });
         });
 
-        if (selectedType !== 'transfer') {
-          bindCategoryEvents();
-          bindWalletEvents();
-        } else {
+        if (selectedType === 'transfer') {
           const fromSelect = overlay.querySelector('#tf-from');
           const toSelect = overlay.querySelector('#tf-to');
           if (fromSelect) fromSelect.addEventListener('change', (e) => { transferFromId = e.target.value; });
@@ -809,60 +822,24 @@ function openTransactionForm(prefill = {}) {
         }
       }
 
-      function bindCategoryEvents() {
-        const catContainer = overlay.querySelector('#tx-cat-container');
-
-        // Add custom category button
-        const addBtn = overlay.querySelector('#manage-cat-add-btn');
-        if (addBtn) {
-          addBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openAddCategoryModal(selectedType, (newType) => {
-              if (newType !== selectedType) selectedType = newType;
-              if (catContainer) {
-                catContainer.innerHTML = renderCategorySelector(selectedType, selectedCategory);
-                bindCategoryEvents();
-              }
-            });
-          });
+      // Delegated event listener for category and wallet clicks inside modal
+      overlay.addEventListener('click', (e) => {
+        const catItem = e.target.closest('.cat-grid__item');
+        if (catItem) {
+          overlay.querySelectorAll('.cat-grid__item').forEach(i => i.classList.remove('selected'));
+          catItem.classList.add('selected');
+          selectedCategory = catItem.dataset.category;
+          return;
         }
 
-        // Delete custom category button
-        overlay.querySelectorAll('.del-cat-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const key = btn.dataset.catKey;
-            if (!key) return;
-            const catName = CATEGORIES[key]?.name || 'kategori';
-            Store.deleteCustomCategory(key);
-            if (selectedCategory === key) selectedCategory = '';
-            if (catContainer) {
-              catContainer.innerHTML = renderCategorySelector(selectedType, selectedCategory);
-              bindCategoryEvents();
-            }
-            Toast.show(`Kategori "${catName}" dihapus`, 'info');
-          });
-        });
-
-        // Select category item
-        overlay.querySelectorAll('.cat-grid__item').forEach(item => {
-          item.addEventListener('click', () => {
-            overlay.querySelectorAll('.cat-grid__item').forEach(i => i.classList.remove('selected'));
-            item.classList.add('selected');
-            selectedCategory = item.dataset.category;
-          });
-        });
-      }
-
-      function bindWalletEvents() {
-        overlay.querySelectorAll('.wallet-chip').forEach(chip => {
-          chip.addEventListener('click', () => {
-            overlay.querySelectorAll('.wallet-chip').forEach(c => c.classList.remove('selected'));
-            chip.classList.add('selected');
-            selectedWalletId = chip.dataset.walletId;
-          });
-        });
-      }
+        const walletChip = e.target.closest('.wallet-chip');
+        if (walletChip) {
+          overlay.querySelectorAll('.wallet-chip').forEach(c => c.classList.remove('selected'));
+          walletChip.classList.add('selected');
+          selectedWalletId = walletChip.dataset.walletId;
+          return;
+        }
+      });
 
       bindEvents();
 
@@ -871,29 +848,29 @@ function openTransactionForm(prefill = {}) {
         const date = overlay.querySelector('#tx-date').value;
         const note = overlay.querySelector('#tx-note').value.trim();
 
-        if (!amount || amount <= 0) { Toast.show('Masukkan jumlah', 'warning'); return; }
+        if (!amount || amount <= 0) { Toast.show(t('invalidAmount'), 'warning'); return; }
 
         if (selectedType === 'transfer') {
           const fromId = overlay.querySelector('#tf-from').value;
           const toId = overlay.querySelector('#tf-to').value;
 
-          if (!fromId) { Toast.show('Pilih dompet asal', 'warning'); return; }
-          if (!toId) { Toast.show('Pilih dompet tujuan', 'warning'); return; }
-          if (fromId === toId) { Toast.show('Pilih dompet yang berbeda', 'warning'); return; }
+          if (!fromId) { Toast.show(t('selectSourceWallet'), 'warning'); return; }
+          if (!toId) { Toast.show(t('selectTargetWallet'), 'warning'); return; }
+          if (fromId === toId) { Toast.show(t('sameWalletError'), 'warning'); return; }
 
           const ok = Store.transfer(fromId, toId, amount);
-          if (!ok) { Toast.show('Saldo dompet asal tidak cukup', 'error'); return; }
+          if (!ok) { Toast.show(t('insufficientBalance'), 'error'); return; }
 
           const fromW = Store.getWallet(fromId);
           const toW = Store.getWallet(toId);
           Modal.close();
           Router.handleRoute();
-          Toast.show(`Transfer ${Utils.formatRupiah(amount)} dari ${fromW?.name || '?'} ke ${toW?.name || '?'} berhasil! ✅`, 'success');
+          Toast.show(`Transfer ${Utils.formatRupiah(amount)} ${fromW?.name || '?'} -> ${toW?.name || '?'} ${t('transferSuccess')}`, 'success');
           return;
         }
 
-        if (!selectedCategory) { Toast.show('Pilih kategori', 'warning'); return; }
-        if (!selectedWalletId) { Toast.show('Pilih sumber dana', 'warning'); return; }
+        if (!selectedCategory) { Toast.show(t('selectCategoryWarning'), 'warning'); return; }
+        if (!selectedWalletId) { Toast.show(t('selectWalletWarning'), 'warning'); return; }
 
         if (isEdit) {
           Store.updateTransaction(prefill.editId, {
@@ -906,7 +883,7 @@ function openTransactionForm(prefill = {}) {
           });
           Modal.close();
           Router.handleRoute();
-          Toast.show('Transaksi berhasil diperbarui! ✅', 'success');
+          Toast.show(t('txUpdated'), 'success');
         } else {
           Store.addTransaction({
             type: selectedType,
@@ -918,8 +895,7 @@ function openTransactionForm(prefill = {}) {
           });
           Modal.close();
           Router.handleRoute();
-          const cat = CATEGORIES[selectedCategory];
-          Toast.show(`${selectedType === 'income' ? 'Pemasukan' : 'Pengeluaran'} ${Utils.formatRupiah(amount)} dicatat!`, 'success');
+          Toast.show(`${selectedType === 'income' ? t('income') : t('expense')} ${Utils.formatRupiah(amount)} ${t('txRecorded')}`, 'success');
         }
       });
     }

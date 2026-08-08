@@ -16,7 +16,7 @@ function renderAI(container) {
         <div class="ai-input-area">
           <div class="ai-input-bar">
             <button class="btn--ghost btn--icon" style="color:var(--mint-accent);">${mIcon('mic')}</button>
-            <input type="text" id="chat-input" placeholder="Tuliskan transaksi atau pertanyaan..." autocomplete="off">
+            <input type="text" id="chat-input" placeholder="${t('aiInputPlaceholder')}" autocomplete="off">
             <button class="ai-input-bar__send" id="chat-send">${mIcon('send')}</button>
           </div>
         </div>
@@ -71,13 +71,13 @@ function renderWelcomeScreen() {
   return `
     <div class="ai-welcome">
       <div class="ai-welcome__icon">${mIcon('smart_toy')}</div>
-      <h2 class="ai-welcome__title">AI Financial Assistant</h2>
-      <p class="ai-welcome__desc">Saya bisa membantu mencatat transaksi, mengecek saldo, atau memberikan tips keuangan berbasis dompet kamu.</p>
+      <h2 class="ai-welcome__title">${t('aiTitle')}</h2>
+      <p class="ai-welcome__desc">${t('aiDesc')}</p>
       
       <div class="ai-welcome__prompts">
-        <button class="ai-welcome__prompt-chip" data-prompt="Berapa saldo saya?">"Berapa saldo saya?"</button>
-        <button class="ai-welcome__prompt-chip" data-prompt="Pengeluaran minggu ini">"Pengeluaran minggu ini"</button>
-        <button class="ai-welcome__prompt-chip" data-prompt="Kasih tips keuangan">"Kasih tips keuangan"</button>
+        <button class="ai-welcome__prompt-chip" data-prompt="${t('promptBalance')}">"${t('promptBalance')}"</button>
+        <button class="ai-welcome__prompt-chip" data-prompt="${t('promptExpense')}">"${t('promptExpense')}"</button>
+        <button class="ai-welcome__prompt-chip" data-prompt="${t('promptTips')}">"${t('promptTips')}"</button>
       </div>
     </div>
   `;

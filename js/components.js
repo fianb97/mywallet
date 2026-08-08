@@ -5,6 +5,9 @@
 // ── Toast Notification System ──
 const Toast = {
   show(message, type = 'info') {
+    // Suppress success and info toasts per user request
+    if (type === 'success' || type === 'info') return;
+
     let container = document.getElementById('toast-container');
     if (!container) {
       container = document.createElement('div');
@@ -87,11 +90,13 @@ const Modal = {
 // ── Sidebar Renderer (Verdant Glass — Solid Deep Forest Green) ──
 function renderSidebar() {
   const activeDebts = Store.getDebts({ isPaid: false }).length;
+  const activeBills = Store.getBills({ isPaid: false }).length;
   const nav = [
     { page: 'dashboard', icon: 'dashboard', label: t('dashboard') },
     { page: 'transactions', icon: 'receipt_long', label: t('activity') },
     { page: 'wallets', icon: 'account_balance_wallet', label: t('wallets') },
     { page: 'debts', icon: 'handshake', label: t('debts'), badge: activeDebts || null },
+    { page: 'bills', icon: 'request_quote', label: t('bills'), badge: activeBills || null },
     { page: 'ai', icon: 'smart_toy', label: t('assistant') },
     { page: 'settings', icon: 'settings', label: t('settings') },
   ];
@@ -99,7 +104,6 @@ function renderSidebar() {
   return `
     <aside class="sidebar" id="sidebar">
       <div class="sidebar__logo">
-        <div class="sidebar__logo-icon">${mIcon('account_balance_wallet')}</div>
         <span class="sidebar__logo-text">MyWallet</span>
       </div>
       <nav class="sidebar__nav">
@@ -140,7 +144,7 @@ function renderBottomNav() {
     { page: 'transactions', icon: 'receipt_long', label: t('activity') },
     { page: 'wallets', icon: 'account_balance_wallet', label: t('wallets') },
     { page: 'debts', icon: 'handshake', label: t('debts') },
-    { page: 'ai', icon: 'smart_toy', label: t('assistant') },
+    { page: 'bills', icon: 'request_quote', label: t('bills') },
   ];
 
   return `
@@ -179,8 +183,8 @@ function renderOnboarding() {
   overlay.innerHTML = `
     <div class="onboarding animate-fade-in-up">
       <div class="onboarding__logo">${mIcon('account_balance_wallet')}</div>
-      <h1 class="onboarding__title">Selamat Datang di MyWallet</h1>
-      <p class="onboarding__desc">Masukkan saldo awal dompet kamu untuk memulai. Kamu bisa menambah atau mengubahnya nanti.</p>
+      <h1 class="onboarding__title">${t('onboardingTitle')}</h1>
+      <p class="onboarding__desc">${t('onboardingDesc')}</p>
       <div class="onboarding__wallets" id="onboarding-wallets">
         ${defaults.map((w, i) => `
           <div class="onboarding__wallet-row">
@@ -192,7 +196,7 @@ function renderOnboarding() {
       </div>
       <div class="onboarding__submit-wrap">
         <button class="btn btn--primary btn--lg btn--full" id="setup-done-btn">
-          ${mIcon('rocket_launch')} Mulai Sekarang
+          ${mIcon('rocket_launch')} ${t('getStarted')}
         </button>
       </div>
     </div>
@@ -237,7 +241,7 @@ function renderOnboarding() {
     Store.completeSetup();
     overlay.remove();
     Router.handleRoute();
-    Toast.show('Selamat datang di MyWallet! 🎉', 'success');
+    Toast.show(t('welcomeToast'), 'success');
   });
 }
 
@@ -257,7 +261,7 @@ window.openSettingsModal = function () {
       <p class="text-secondary" style="font-size:var(--fs-sm); line-height:1.5;">Pilih file backup (.json) untuk memulihkan data Anda. <strong style="color:var(--color-expense);">Perhatian: Data saat ini akan terhapus dan ditimpa!</strong></p>
       
       <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
-      <button class="btn btn--secondary" style="display:flex; align-items:center; justify-content:center; gap:8px;" onclick="document.getElementById('import-file').click()">
+      <button class="btn btn--secondary btn-import-data" style="display:flex; align-items:center; justify-content:center; gap:8px;" onclick="document.getElementById('import-file').click()">
         ${mIcon('upload')}
         Import Data (Restore)
       </button>
@@ -300,6 +304,7 @@ window.importData = function (event) {
       }
 
       localStorage.setItem('mywallet_data', JSON.stringify(parsed));
+      Store.invalidateCache(); // Clear in-memory cache before reload
       Toast.show('Data berhasil dipulihkan! Aplikasi memuat ulang... 🔄', 'success');
       setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
@@ -314,8 +319,8 @@ function renderWalletSelector(selectedId = '') {
   const wallets = Store.getWallets();
   return `
     <div class="form-group">
-      <label class="form-group__label">Sumber Dana</label>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <label class="form-group__label">${t('selectWallet')}</label>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:8px;">
         ${wallets.map(w => `
           <div class="wallet-chip ${w.id === selectedId ? 'selected' : ''}" data-wallet-id="${w.id}">
             <span class="wallet-chip__icon">${getWalletIcon(w)}</span>
@@ -334,21 +339,13 @@ function renderCategorySelector(type = 'expense', selectedCat = '') {
   return `
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <label class="form-group__label" style="margin-bottom:0;">Kategori</label>
-        <button type="button" class="btn--ghost" id="manage-cat-add-btn" style="font-size:12px;color:var(--primary);font-weight:600;padding:2px 8px;border-radius:var(--radius-full);background:rgba(0,69,13,0.06);display:flex;align-items:center;gap:4px;">
-          ${mIcon('add')} Tambah Kategori
-        </button>
+        <label class="form-group__label" style="margin-bottom:0;">${t('selectCategory')}</label>
       </div>
       <div class="cat-grid">
         ${cats.map(([key, cat]) => `
-          <div class="cat-grid__item ${key === selectedCat ? 'selected' : ''}" data-category="${key}" style="position:relative;">
+          <div class="cat-grid__item ${key === selectedCat ? 'selected' : ''}" data-category="${key}">
             <span class="cat-grid__item-icon">${cat.icon}</span>
-            <span>${cat.name}</span>
-            ${cat.isCustom ? `
-              <button type="button" class="del-cat-btn" data-cat-key="${key}" title="Hapus Kategori" style="position:absolute;top:2px;right:2px;background:rgba(186,26,26,0.15);color:var(--error);border:none;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;">
-                ${mIcon('close')}
-              </button>
-            ` : ''}
+            <span>${Utils.getCategoryName(key)}</span>
           </div>
         `).join('')}
       </div>
@@ -370,20 +367,20 @@ function openAddCategoryModal(defaultType = 'expense', onSaved = null) {
 
   const html = `
     <div class="form-group">
-      <label class="form-group__label">Jenis Kategori</label>
+      <label class="form-group__label">${t('categoryType')}</label>
       <div class="tab-switcher" id="custom-cat-type-tabs">
-        <button type="button" class="tab-switcher__tab ${catType === 'expense' ? 'active' : ''}" data-type="expense">Pengeluaran</button>
-        <button type="button" class="tab-switcher__tab ${catType === 'income' ? 'active' : ''}" data-type="income">Pemasukan</button>
+        <button type="button" class="tab-switcher__tab ${catType === 'expense' ? 'active' : ''}" data-type="expense">${t('expense')}</button>
+        <button type="button" class="tab-switcher__tab ${catType === 'income' ? 'active' : ''}" data-type="income">${t('income')}</button>
       </div>
     </div>
 
     <div class="form-group">
-      <label class="form-group__label">Nama Kategori</label>
-      <input type="text" id="new-cat-name" placeholder="Contoh: Hobi, Peliharaan, Proyek..." style="width:100%;">
+      <label class="form-group__label">${t('categoryName')}</label>
+      <input type="text" id="new-cat-name" placeholder="${t('categoryNamePlaceholder')}" style="width:100%;">
     </div>
 
     <div class="form-group">
-      <label class="form-group__label">Pilih Ikon</label>
+      <label class="form-group__label">${t('selectIcon')}</label>
       <div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:8px;max-height:160px;overflow-y:auto;padding:4px;" id="cat-icon-picker">
         ${icons.map(ic => `
           <div class="icon-picker__item ${ic === selectedIcon ? 'selected' : ''}" data-icon="${ic}" style="padding:10px;border-radius:var(--radius-md);border:1px solid var(--outline-variant);display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--surface);">
@@ -394,8 +391,8 @@ function openAddCategoryModal(defaultType = 'expense', onSaved = null) {
     </div>
   `;
 
-  Modal.open('Tambah Kategori Baru', html, {
-    footerHtml: `<button class="btn btn--primary btn--full" id="save-new-cat-btn">💾 Simpan Kategori</button>`,
+  Modal.open(t('addCategoryNew'), html, {
+    footerHtml: `<button class="btn btn--primary btn--full" id="save-new-cat-btn">${t('saveCategory')}</button>`,
     onOpen(overlay) {
       overlay.querySelectorAll('#custom-cat-type-tabs .tab-switcher__tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -415,13 +412,82 @@ function openAddCategoryModal(defaultType = 'expense', onSaved = null) {
 
       overlay.querySelector('#save-new-cat-btn').addEventListener('click', () => {
         const name = overlay.querySelector('#new-cat-name').value.trim();
-        if (!name) { Toast.show('Masukkan nama kategori', 'warning'); return; }
+        if (!name) { Toast.show(t('enterCategoryName'), 'warning'); return; }
 
         Store.addCustomCategory({ name, type: catType, iconName: selectedIcon });
         Modal.close();
-        Toast.show(`Kategori "${name}" ditambahkan! 🎉`, 'success');
+        Toast.show(`${t('selectCategory')} "${name}" ${t('categoryAdded')}`, 'success');
         if (onSaved) onSaved(catType);
       });
     }
   });
 }
+
+// ── Modal Helper: Delete Custom Category ──
+function openDeleteCategoryModal(defaultType = 'expense', onChanged = null) {
+  function renderList(modalOverlay) {
+    const customCats = Object.entries(CATEGORIES).filter(([, cat]) => cat.isCustom);
+    const listEl = modalOverlay.querySelector('#custom-cat-list');
+    if (!listEl) return;
+
+    if (customCats.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align:center;padding:24px 12px;color:var(--outline);">
+          <span class="material-symbols-outlined" style="font-size:40px;margin-bottom:8px;opacity:0.6;">category</span>
+          <p style="margin:0;font-size:14px;font-weight:500;">${t('noCustomCatToDelete')}</p>
+          <p style="margin:4px 0 0;font-size:12px;opacity:0.8;">${t('systemCatCannotDelete')}</p>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = customCats.map(([key, cat]) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--outline-variant);border-radius:var(--radius-md);margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;display:flex;align-items:center;">${cat.icon}</span>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--on-surface);">${Utils.escapeHtml(cat.name)}</div>
+            <span style="font-size:11px;padding:1px 6px;border-radius:var(--radius-full);background:${cat.type === 'expense' ? 'rgba(186,26,26,0.1)' : 'rgba(0,69,13,0.1)'};color:${cat.type === 'expense' ? 'var(--error)' : 'var(--primary)'};">
+              ${cat.type === 'expense' ? t('expense') : t('income')}
+            </span>
+          </div>
+        </div>
+        <button type="button" class="btn--ghost del-cat-item-btn" data-cat-key="${key}" data-cat-name="${Utils.escapeHtml(cat.name)}" style="color:var(--error);font-size:12px;font-weight:600;padding:4px 10px;border-radius:var(--radius-md);background:rgba(186,26,26,0.08);display:flex;align-items:center;gap:4px;">
+          ${mIcon('delete')} ${t('delete')}
+        </button>
+      </div>
+    `).join('');
+
+    // Bind delete buttons
+    listEl.querySelectorAll('.del-cat-item-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.catKey;
+        const name = btn.dataset.catName;
+        if (!key) return;
+
+        Store.deleteCustomCategory(key);
+        Toast.show(`${t('selectCategory')} "${name}" ${t('categoryDeleted')}`, 'info');
+        renderList(modalOverlay);
+        if (onChanged) onChanged();
+      });
+    });
+  }
+
+  const html = `
+    <div style="margin-bottom:12px;">
+      <p style="margin:0 0 12px;font-size:13px;color:var(--outline);">${t('selectCustomCatToDelete')}</p>
+      <div id="custom-cat-list" style="max-height:280px;overflow-y:auto;padding-right:2px;"></div>
+    </div>
+  `;
+
+  Modal.open(t('deleteCategoryModalTitle'), html, {
+    footerHtml: `<button class="btn btn--secondary btn--full" id="close-del-cat-modal-btn">${t('done')}</button>`,
+    onOpen(overlay) {
+      renderList(overlay);
+      overlay.querySelector('#close-del-cat-modal-btn')?.addEventListener('click', () => {
+        Modal.close();
+      });
+    }
+  });
+}
+

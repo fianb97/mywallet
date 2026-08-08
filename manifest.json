@@ -4,24 +4,26 @@
   "description": "Aplikasi manajemen keuangan pribadi yang modern dan aman.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#F5FAF6",
-  "theme_color": "#155E2B",
+  "background_color": "#00450d",
+  "theme_color": "#00450d",
   "icons": [
-    {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

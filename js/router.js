@@ -54,6 +54,7 @@ const Router = {
       transactions: mIcon('receipt_long') + ` <span>${t('activity')}</span>`,
       wallets: mIcon('account_balance_wallet') + ` <span>${t('wallets')}</span>`,
       debts: mIcon('handshake') + ` <span>${t('debts')}</span>`,
+      bills: mIcon('request_quote') + ` <span>${t('bills')}</span>`,
       ai: mIcon('smart_toy') + ` <span>${t('assistant')}</span>`,
       settings: mIcon('settings') + ` <span>${t('settings')}</span>`
     };

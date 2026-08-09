@@ -3,7 +3,7 @@
 // ========================================
 
 function renderDebts(container) {
-  let activeTab = 'receivable'; // 'receivable' | 'debt'
+  let activeTab = 'debt'; // 'debt' | 'receivable'
   let showPaid = false;
 
   const now = new Date();
@@ -65,15 +65,6 @@ function renderDebts(container) {
 
       <!-- Bento Summary Grid -->
       <div class="grid-2 section" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:20px;animation:fadeInUp .4s var(--ease-out)">
-        <!-- Total Piutang -->
-        <div class="card" style="border-radius:24px;padding:20px;">
-          <div style="display:flex;align-items:center;gap:8px;color:var(--on-surface-variant);font-size:11px;font-weight:700;letter-spacing:0.05em;margin-bottom:12px;">
-            <span style="color:var(--color-income);">${mIcon('call_received')}</span> ${t('totalReceivablesCard')}
-          </div>
-          <div class="mono" style="font-size:28px;font-weight:700;color:var(--color-income);">${Utils.formatRupiah(totalReceivable)}</div>
-          <div style="font-size:13px;color:var(--on-surface-variant);margin-top:16px;">${Store.getDebts({ type: 'receivable', isPaid: false }).length} ${t('activeStatus')}</div>
-        </div>
-
         <!-- Total Hutang -->
         <div class="card" style="border-radius:24px;padding:20px;">
           <div style="display:flex;align-items:center;gap:8px;color:var(--on-surface-variant);font-size:11px;font-weight:700;letter-spacing:0.05em;margin-bottom:12px;">
@@ -81,6 +72,15 @@ function renderDebts(container) {
           </div>
           <div class="mono text-expense" style="font-size:28px;font-weight:700;">${Utils.formatRupiah(totalDebt)}</div>
           <div style="font-size:13px;color:var(--on-surface-variant);margin-top:16px;">${Store.getDebts({ type: 'debt', isPaid: false }).length} ${t('activeStatus')}</div>
+        </div>
+
+        <!-- Total Piutang -->
+        <div class="card" style="border-radius:24px;padding:20px;">
+          <div style="display:flex;align-items:center;gap:8px;color:var(--on-surface-variant);font-size:11px;font-weight:700;letter-spacing:0.05em;margin-bottom:12px;">
+            <span style="color:var(--color-income);">${mIcon('call_received')}</span> ${t('totalReceivablesCard')}
+          </div>
+          <div class="mono" style="font-size:28px;font-weight:700;color:var(--color-income);">${Utils.formatRupiah(totalReceivable)}</div>
+          <div style="font-size:13px;color:var(--on-surface-variant);margin-top:16px;">${Store.getDebts({ type: 'receivable', isPaid: false }).length} ${t('activeStatus')}</div>
         </div>
 
         <!-- Selisih Bersih -->
@@ -98,8 +98,8 @@ function renderDebts(container) {
       <!-- Debts Tabs & Date Filter Bar -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;animation:fadeInUp .45s var(--ease-out);">
         <div class="debts-tabs" style="margin-bottom:0;">
-          <button class="debts-tabs__tab ${activeTab === 'receivable' ? 'active' : ''}" data-tab="receivable">${t('receivablesLabel')}</button>
           <button class="debts-tabs__tab ${activeTab === 'debt' ? 'active' : ''}" data-tab="debt">${t('debtsLabel')}</button>
+          <button class="debts-tabs__tab ${activeTab === 'receivable' ? 'active' : ''}" data-tab="receivable">${t('receivablesLabel')}</button>
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">

@@ -98,6 +98,7 @@ function renderSidebar() {
     { page: 'debts', icon: 'handshake', label: t('debts'), badge: activeDebts || null },
     { page: 'bills', icon: 'request_quote', label: t('bills'), badge: activeBills || null },
     { page: 'ai', icon: 'smart_toy', label: t('assistant') },
+    { page: 'custom-endpoints', icon: 'vpn_key', label: t('customEndpoints') },
     { page: 'settings', icon: 'settings', label: t('settings') },
   ];
 
@@ -423,14 +424,14 @@ function openAddCategoryModal(defaultType = 'expense', onSaved = null) {
   });
 }
 
-// ── Modal Helper: Delete Custom Category ──
+// ── Modal Helper: Delete Category (Built-in & Custom) ──
 function openDeleteCategoryModal(defaultType = 'expense', onChanged = null) {
   function renderList(modalOverlay) {
-    const customCats = Object.entries(CATEGORIES).filter(([, cat]) => cat.isCustom);
+    const allCats = Object.entries(CATEGORIES);
     const listEl = modalOverlay.querySelector('#custom-cat-list');
     if (!listEl) return;
 
-    if (customCats.length === 0) {
+    if (allCats.length === 0) {
       listEl.innerHTML = `
         <div style="text-align:center;padding:24px 12px;color:var(--outline);">
           <span class="material-symbols-outlined" style="font-size:40px;margin-bottom:8px;opacity:0.6;">category</span>
@@ -441,22 +442,31 @@ function openDeleteCategoryModal(defaultType = 'expense', onChanged = null) {
       return;
     }
 
-    listEl.innerHTML = customCats.map(([key, cat]) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--outline-variant);border-radius:var(--radius-md);margin-bottom:8px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:20px;display:flex;align-items:center;">${cat.icon}</span>
-          <div>
-            <div style="font-weight:600;font-size:14px;color:var(--on-surface);">${Utils.escapeHtml(cat.name)}</div>
-            <span style="font-size:11px;padding:1px 6px;border-radius:var(--radius-full);background:${cat.type === 'expense' ? 'rgba(186,26,26,0.1)' : 'rgba(0,69,13,0.1)'};color:${cat.type === 'expense' ? 'var(--error)' : 'var(--primary)'};">
-              ${cat.type === 'expense' ? t('expense') : t('income')}
-            </span>
+    listEl.innerHTML = allCats.map(([key, cat]) => {
+      const catName = Utils.getCategoryName(key);
+      const isCustom = !!cat.isCustom;
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--outline-variant);border-radius:var(--radius-md);margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:20px;display:flex;align-items:center;color:${cat.color || 'var(--primary)'};">${cat.icon}</span>
+            <div>
+              <div style="font-weight:600;font-size:14px;color:var(--on-surface);">${Utils.escapeHtml(catName)}</div>
+              <div style="display:flex;gap:6px;margin-top:2px;">
+                <span style="font-size:10px;padding:1px 6px;border-radius:var(--radius-full);background:${cat.type === 'expense' ? 'rgba(186,26,26,0.1)' : 'rgba(0,69,13,0.1)'};color:${cat.type === 'expense' ? 'var(--error)' : 'var(--primary)'};">
+                  ${cat.type === 'expense' ? t('expense') : t('income')}
+                </span>
+                <span style="font-size:10px;padding:1px 6px;border-radius:var(--radius-full);background:${isCustom ? 'rgba(3,169,244,0.1)' : 'rgba(255,193,7,0.1)'};color:${isCustom ? '#0284c7' : '#d97706'};">
+                  ${isCustom ? t('customBadge') : t('builtInBadge')}
+                </span>
+              </div>
+            </div>
           </div>
+          <button type="button" class="btn--ghost del-cat-item-btn" data-cat-key="${key}" data-cat-name="${Utils.escapeHtml(catName)}" style="color:var(--error);font-size:12px;font-weight:600;padding:4px 10px;border-radius:var(--radius-md);background:rgba(186,26,26,0.08);display:flex;align-items:center;gap:4px;cursor:pointer;">
+            ${mIcon('delete')} ${t('delete')}
+          </button>
         </div>
-        <button type="button" class="btn--ghost del-cat-item-btn" data-cat-key="${key}" data-cat-name="${Utils.escapeHtml(cat.name)}" style="color:var(--error);font-size:12px;font-weight:600;padding:4px 10px;border-radius:var(--radius-md);background:rgba(186,26,26,0.08);display:flex;align-items:center;gap:4px;">
-          ${mIcon('delete')} ${t('delete')}
-        </button>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     // Bind delete buttons
     listEl.querySelectorAll('.del-cat-item-btn').forEach(btn => {
@@ -465,8 +475,8 @@ function openDeleteCategoryModal(defaultType = 'expense', onChanged = null) {
         const name = btn.dataset.catName;
         if (!key) return;
 
-        Store.deleteCustomCategory(key);
-        Toast.show(`${t('selectCategory')} "${name}" ${t('categoryDeleted')}`, 'info');
+        Store.deleteCategory(key);
+        Toast.show(`"${name}" ${t('categoryDeleted')}`, 'info');
         renderList(modalOverlay);
         if (onChanged) onChanged();
       });
@@ -476,14 +486,31 @@ function openDeleteCategoryModal(defaultType = 'expense', onChanged = null) {
   const html = `
     <div style="margin-bottom:12px;">
       <p style="margin:0 0 12px;font-size:13px;color:var(--outline);">${t('selectCustomCatToDelete')}</p>
-      <div id="custom-cat-list" style="max-height:280px;overflow-y:auto;padding-right:2px;"></div>
+      <div id="custom-cat-list" style="max-height:300px;overflow-y:auto;padding-right:2px;"></div>
     </div>
   `;
 
   Modal.open(t('deleteCategoryModalTitle'), html, {
-    footerHtml: `<button class="btn btn--secondary btn--full" id="close-del-cat-modal-btn">${t('done')}</button>`,
+    footerHtml: `
+      <div style="display:flex;gap:8px;width:100%;">
+        <button class="btn btn--secondary" id="reset-cats-modal-btn" style="flex:1;padding:8px 12px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:4px;">
+          ${mIcon('restart_alt')} ${t('resetCategoriesBtn')}
+        </button>
+        <button class="btn btn--primary" id="close-del-cat-modal-btn" style="flex:1;">${t('done')}</button>
+      </div>
+    `,
     onOpen(overlay) {
       renderList(overlay);
+
+      overlay.querySelector('#reset-cats-modal-btn')?.addEventListener('click', () => {
+        if (confirm(t('resetCategoriesConfirm'))) {
+          Store.resetCategories();
+          Toast.show(t('categoriesResetSuccess'), 'success');
+          renderList(overlay);
+          if (onChanged) onChanged();
+        }
+      });
+
       overlay.querySelector('#close-del-cat-modal-btn')?.addEventListener('click', () => {
         Modal.close();
       });

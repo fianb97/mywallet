@@ -30,11 +30,21 @@ function initApp() {
   Router.register('debts', renderDebts);
   Router.register('bills', renderBills);
   Router.register('ai', renderAI);
+  Router.register('custom-endpoints', renderCustomEndpoints);
   Router.register('settings', renderSettings);
 
   // Check bill deadline notifications on startup & periodically every 60s
   Store.checkBillNotifications();
   setInterval(() => Store.checkBillNotifications(), 60000);
+
+  // Dismiss splash screen overlay smoothly
+  setTimeout(() => {
+    const splash = document.getElementById('app-splash-screen');
+    if (splash) {
+      splash.classList.add('fade-out');
+      setTimeout(() => splash.remove(), 450);
+    }
+  }, 900);
 
   function bindAppEvents() {
     const menuBtn = document.getElementById('menu-btn');

@@ -31,17 +31,19 @@ function renderDashboard(container) {
   // Recent transactions (last 5)
   const recentTx = [...allTx].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
 
+  // Bill totals
+  const activeBills = (state.bills || []).filter(b => !b.isPaid);
+  const totalActiveBills = activeBills.reduce((s, b) => s + b.amount, 0);
+  const balanceAfterBills = totalBalance - totalActiveBills;
+
   // Debt totals
   const activeDebts = state.debts.filter(d => !d.isPaid);
   const totalDebt = activeDebts.filter(d => d.type === 'debt').reduce((s, d) => s + d.amount, 0);
   const totalReceivable = activeDebts.filter(d => d.type === 'receivable').reduce((s, d) => s + d.amount, 0);
   const netDebtBalance = totalReceivable - totalDebt;
-  const adjustedBalance = totalBalance + netDebtBalance;
 
-  // Bill totals
-  const activeBills = (state.bills || []).filter(b => !b.isPaid);
-  const totalActiveBills = activeBills.reduce((s, b) => s + b.amount, 0);
-  const balanceAfterBills = totalBalance - totalActiveBills;
+  // Total Saldo (Disesuaikan) = Total Saldo Setelah Tagihan + Piutang - Hutang
+  const adjustedBalance = balanceAfterBills + netDebtBalance;
 
   // Cached number formatter
   const numFmt = Utils._getNumFmt();
@@ -95,8 +97,8 @@ function renderDashboard(container) {
     <div class="card card--adjusted section" style="animation: fadeInUp 0.52s var(--ease-out)">
       <div class="card__title">${mIcon('receipt_long')} ${t('adjustedBalanceAfterBills')}</div>
       <div style="display:flex;align-items:baseline;gap:4px;">
-        <span class="mono" style="color:var(--on-surface);font-size:14px;">Rp</span>
-        <div class="card__value" style="color:${balanceAfterBills >= 0 ? 'var(--on-surface)' : 'var(--color-expense)'};">${numFmt.format(Math.abs(balanceAfterBills))}</div>
+        <span class="mono" style="color:${balanceAfterBills >= 0 ? 'var(--primary)' : 'var(--color-expense) !important'};font-size:14px;">Rp</span>
+        <div class="card__value" style="color:${balanceAfterBills >= 0 ? 'var(--primary)' : 'var(--color-expense) !important'};">${balanceAfterBills < 0 ? '-' : ''}${numFmt.format(Math.abs(balanceAfterBills))}</div>
       </div>
       <div class="adjusted-sub">
         <div class="adjusted-sub__item">
@@ -110,8 +112,8 @@ function renderDashboard(container) {
     <div class="card card--adjusted section" style="animation: fadeInUp 0.55s var(--ease-out)">
       <div class="card__title">${mIcon('account_balance')} ${t('adjustedBalance')}</div>
       <div style="display:flex;align-items:baseline;gap:4px;">
-        <span class="mono" style="color:var(--on-surface);font-size:14px;">Rp</span>
-        <div class="card__value">${numFmt.format(Math.abs(adjustedBalance))}</div>
+        <span class="mono" style="color:${adjustedBalance >= 0 ? 'var(--primary)' : 'var(--color-expense) !important'};font-size:14px;">Rp</span>
+        <div class="card__value" style="color:${adjustedBalance >= 0 ? 'var(--primary)' : 'var(--color-expense) !important'};">${adjustedBalance < 0 ? '-' : ''}${numFmt.format(Math.abs(adjustedBalance))}</div>
       </div>
       <div class="adjusted-sub">
         <div class="adjusted-sub__item">

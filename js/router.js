@@ -32,6 +32,15 @@ const Router = {
       // Update active states
       this.updateActiveNav(hash);
       this.updateHeaderTitle(hash);
+      this.updateFAB(hash);
+    }
+  },
+
+  // Show/Hide FAB button based on route (hide on AI assistant page)
+  updateFAB(hash) {
+    const fab = document.getElementById('fab-btn');
+    if (fab) {
+      fab.style.display = hash === 'ai' ? 'none' : 'flex';
     }
   },
 
@@ -56,6 +65,7 @@ const Router = {
       debts: mIcon('handshake') + ` <span>${t('debts')}</span>`,
       bills: mIcon('request_quote') + ` <span>${t('bills')}</span>`,
       ai: mIcon('smart_toy') + ` <span>${t('assistant')}</span>`,
+      'custom-endpoints': mIcon('vpn_key') + ` <span>${t('customEndpoints')}</span>`,
       settings: mIcon('settings') + ` <span>${t('settings')}</span>`
     };
     const el = document.getElementById('header-title');

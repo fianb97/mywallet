@@ -34,7 +34,9 @@ function renderBills(container) {
   }
 
   function getDeadlineBadge(dueDateStr) {
-    if (!dueDateStr) return '';
+    if (!dueDateStr) {
+      return `<span style="background:rgba(255,255,255,0.06);color:var(--on-surface-variant);border:1px solid rgba(255,255,255,0.1);padding:2px 8px;border-radius:var(--radius-full);font-size:10px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">♾️ ${I18n.getLang() === 'id' ? 'TANPA DEADLINE' : 'NO DEADLINE'}</span>`;
+    }
     const now = Date.now();
     const dueTime = new Date(dueDateStr).getTime();
     const diffMs = dueTime - now;
@@ -57,7 +59,7 @@ function renderBills(container) {
   }
 
   function formatDateTime(dateTimeStr) {
-    if (!dateTimeStr) return '—';
+    if (!dateTimeStr) return I18n.getLang() === 'id' ? 'Tanpa deadline' : 'No deadline';
     const d = new Date(dateTimeStr);
     const dateFormatted = Utils.formatDate(dateTimeStr);
     const hours = String(d.getHours()).padStart(2, '0');
@@ -193,6 +195,9 @@ function renderBills(container) {
                         <button class="btn btn--sm btn--primary mark-bill-paid-btn" data-id="${b.id}" style="padding:6px 12px;font-size:11px;border-radius:var(--radius-full);">
                           ${mIcon('check')} ${t('payBill')}
                         </button>
+                        <button class="btn btn--sm btn--secondary edit-bill-btn" data-id="${b.id}" style="padding:6px 10px;font-size:11px;border-radius:var(--radius-full);">
+                          ${mIcon('edit')}
+                        </button>
                         <button class="btn btn--sm btn--danger del-bill-btn" data-id="${b.id}" style="padding:6px 10px;font-size:11px;border-radius:var(--radius-full);">
                           ${mIcon('delete')}
                         </button>
@@ -235,6 +240,15 @@ function renderBills(container) {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         openPayBillModal(btn.dataset.id);
+      });
+    });
+
+    // Edit
+    container.querySelectorAll('.edit-bill-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const bill = Store.getBills().find(b => b.id === btn.dataset.id);
+        if (bill) openBillForm(bill);
       });
     });
 
@@ -311,34 +325,40 @@ function renderBills(container) {
   render();
 }
 
-function openBillForm() {
-  let selectedWalletId = '';
-  // Default datetime: tomorrow at 12:00
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(12, 0, 0, 0);
-  const defaultDue = tomorrow.toISOString().slice(0, 16);
+function openBillForm(billToEdit = null) {
+  const isEditing = !!billToEdit;
+  let selectedWalletId = billToEdit ? (billToEdit.walletId || '') : '';
+  
+  let defaultDue = '';
+  if (billToEdit && billToEdit.dueDate) {
+    defaultDue = billToEdit.dueDate.slice(0, 16);
+  }
 
-  Modal.open(t('addBill'), `
+  const modalTitle = isEditing ? (t('editBill') || (I18n.getLang() === 'id' ? 'Edit Tagihan' : 'Edit Bill')) : t('addBill');
+  const titleVal = billToEdit ? Utils.escapeHtml(billToEdit.title) : '';
+  const amountVal = billToEdit ? ('Rp ' + Utils._getNumFmt().format(billToEdit.amount)) : '';
+  const noteVal = billToEdit ? Utils.escapeHtml(billToEdit.note || '') : '';
+
+  Modal.open(modalTitle, `
     <div class="form-group">
       <label class="form-group__label">${t('billTitleLabel')}</label>
-      <input type="text" id="bf-title" placeholder="${t('billTitlePlaceholder')}">
+      <input type="text" id="bf-title" value="${titleVal}" placeholder="${t('billTitlePlaceholder')}">
     </div>
     <div class="form-group">
       <label class="form-group__label">${t('amountRp')}</label>
-      <input type="text" id="bf-amount" placeholder="Rp 0" inputmode="numeric" style="font-family:var(--font-mono);">
+      <input type="text" id="bf-amount" value="${amountVal}" placeholder="Rp 0" inputmode="numeric" style="font-family:var(--font-mono);">
     </div>
     <div class="form-group">
-      <label class="form-group__label">${t('dueDateLabel')}</label>
+      <label class="form-group__label">${t('dueDateLabel')} (${I18n.getLang() === 'id' ? 'Opsional' : 'Optional'})</label>
       <input type="datetime-local" id="bf-duedate" value="${defaultDue}">
     </div>
     <div id="bf-wallet-container">
       <label class="form-group__label">${t('selectWallet')} (${I18n.getLang() === 'id' ? 'Opsional' : 'Optional'})</label>
-      ${renderWalletSelector()}
+      ${renderWalletSelector(selectedWalletId)}
     </div>
     <div class="form-group" style="margin-top:16px;">
       <label class="form-group__label">${t('noteLabel')}</label>
-      <input type="text" id="bf-note" placeholder="${t('notePlaceholder')}">
+      <input type="text" id="bf-note" value="${noteVal}" placeholder="${t('notePlaceholder')}">
     </div>
   `, {
     footerHtml: `<button class="btn btn--primary btn--full" id="bf-save">💾 ${t('save')}</button>`,
@@ -364,12 +384,17 @@ function openBillForm() {
 
         if (!title) { Toast.show(t('enterBillTitle'), 'warning'); return; }
         if (!amount || amount <= 0) { Toast.show(t('invalidAmount'), 'warning'); return; }
-        if (!dueDate) { Toast.show(t('dueDateLabel') + ' ' + (I18n.getLang() === 'id' ? 'wajib diisi' : 'is required'), 'warning'); return; }
 
-        Store.addBill({ title, amount, dueDate, walletId: selectedWalletId, note });
+        if (isEditing) {
+          Store.updateBill(billToEdit.id, { title, amount, dueDate, walletId: selectedWalletId, note });
+          Toast.show(t('billUpdated') || (I18n.getLang() === 'id' ? 'Tagihan berhasil diperbarui!' : 'Bill updated!'), 'success');
+        } else {
+          Store.addBill({ title, amount, dueDate, walletId: selectedWalletId, note });
+          Toast.show(t('billSaved'), 'success');
+        }
+
         Modal.close();
         Router.handleRoute();
-        Toast.show(t('billSaved'), 'success');
 
         // Ask for Notification permission if not set
         if ('Notification' in window && Notification.permission === 'default') {

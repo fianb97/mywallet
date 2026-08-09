@@ -213,7 +213,7 @@ const Icons = {
 };
 
 // ── Category Definitions ──
-const CATEGORIES = {
+const DEFAULT_CATEGORIES = {
   // Expenses
   food:          { name: 'Makanan & Minuman', icon: Icons.cat_food, color: 'var(--cat-food)', type: 'expense' },
   transport:     { name: 'Transportasi', icon: Icons.cat_transport, color: 'var(--cat-transport)', type: 'expense' },
@@ -234,6 +234,8 @@ const CATEGORIES = {
   refund:        { name: 'Kembalian', icon: Icons.cat_refund, color: 'var(--cat-refund)', type: 'income' },
   gift:          { name: 'Hibah/Hadiah', icon: Icons.cat_gift, color: 'var(--cat-gift)', type: 'income' },
 };
+
+const CATEGORIES = { ...DEFAULT_CATEGORIES };
 
 // ── Wallet Type Definitions ──
 const WALLET_TYPES = {

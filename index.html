@@ -35,6 +35,21 @@
   <link rel="apple-touch-icon" href="icon-512.png">
 </head>
 <body>
+  <!-- App Splash Screen Overlay (Mobile & Desktop Initial Launch) -->
+  <div id="app-splash-screen" class="splash-screen">
+    <div class="splash-screen__content">
+      <div class="splash-screen__icon-container">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="64" height="64">
+          <rect x="10" y="22" width="80" height="56" rx="10" ry="10" fill="#2e7d32" />
+          <circle cx="78" cy="50" r="9.5" fill="#ffffff" />
+          <circle cx="78" cy="50" r="4.8" fill="#2e7d32" />
+        </svg>
+      </div>
+      <h1 class="splash-screen__title">MyWallet</h1>
+      <span class="splash-screen__version">v1.0.0</span>
+    </div>
+  </div>
+
   <div id="app"></div>
 
   <!-- Scripts (order matters: utils, i18n, store, router, components, pages, app) -->
@@ -49,6 +64,7 @@
   <script src="js/pages/debts.js"></script>
   <script src="js/pages/bills.js"></script>
   <script src="js/pages/ai-assistant.js"></script>
+  <script src="js/pages/custom-endpoints.js"></script>
   <script src="js/pages/settings.js"></script>
   <script src="js/app.js"></script>
 </body>

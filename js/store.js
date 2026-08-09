@@ -38,7 +38,20 @@ const Store = {
         } else {
           document.documentElement.setAttribute('data-theme', 'light');
         }
-        // Sync custom categories to memory
+        // Sync categories to memory (reset to DEFAULT_CATEGORIES first)
+        if (typeof DEFAULT_CATEGORIES !== 'undefined') {
+          for (const k in CATEGORIES) delete CATEGORIES[k];
+          Object.assign(CATEGORIES, JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)));
+        }
+
+        // Apply deleted categories filter
+        if (state.deletedCategories && Array.isArray(state.deletedCategories)) {
+          state.deletedCategories.forEach(key => {
+            delete CATEGORIES[key];
+          });
+        }
+
+        // Apply custom categories
         if (state.customCategories && Array.isArray(state.customCategories)) {
           state.customCategories.forEach(c => {
             CATEGORIES[c.key] = {
@@ -460,13 +473,41 @@ const Store = {
     return newCat;
   },
 
-  deleteCustomCategory(key) {
+  deleteCategory(key) {
     const state = this.load();
-    if (state.customCategories) {
+    if (!state.deletedCategories) state.deletedCategories = [];
+    if (!state.customCategories) state.customCategories = [];
+
+    const cat = CATEGORIES[key];
+    const isCustom = cat && cat.isCustom;
+
+    if (isCustom) {
       state.customCategories = state.customCategories.filter(c => c.key !== key);
-      this.save(state);
+    } else {
+      if (!state.deletedCategories.includes(key)) {
+        state.deletedCategories.push(key);
+      }
     }
+
     delete CATEGORIES[key];
+    this.save(state);
+  },
+
+  deleteCustomCategory(key) {
+    this.deleteCategory(key);
+  },
+
+  resetCategories() {
+    const state = this.load();
+    state.customCategories = [];
+    state.deletedCategories = [];
+
+    if (typeof DEFAULT_CATEGORIES !== 'undefined') {
+      for (const k in CATEGORIES) delete CATEGORIES[k];
+      Object.assign(CATEGORIES, JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)));
+    }
+
+    this.save(state);
   },
 
   getTheme() {
@@ -509,12 +550,21 @@ const Store = {
       });
     }
 
-    // Sort ACTIVE bills by closest deadline first (dueDate ascending)
+    // Sort ACTIVE bills by closest deadline first (dueDate ascending, no-deadline at the end)
     if (filters.isPaid === false || filters.isPaid === undefined) {
-      bills.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+      bills.sort((a, b) => {
+        if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
     } else {
       // Paid bills sorted by paidDate descending
-      bills.sort((a, b) => new Date(b.paidDate || b.dueDate) - new Date(a.paidDate || a.dueDate));
+      bills.sort((a, b) => {
+        const dateA = a.paidDate || a.dueDate || a.createdAt;
+        const dateB = b.paidDate || b.dueDate || b.createdAt;
+        return new Date(dateB) - new Date(dateA);
+      });
     }
 
     return bills;
@@ -522,6 +572,14 @@ const Store = {
 
   getTotalActiveBills() {
     return this.getBills({ isPaid: false }).reduce((sum, b) => sum + b.amount, 0);
+  },
+
+  getAdjustedBalance() {
+    const total = this.getTotalBalance();
+    const activeBills = this.getTotalActiveBills();
+    const totalDebt = this.getTotalDebt();
+    const totalReceivable = this.getTotalReceivable();
+    return total - activeBills + totalReceivable - totalDebt;
   },
 
   addBill(bill) {
@@ -568,6 +626,31 @@ const Store = {
       note: `Pelunasan Tagihan: ${bill.title}${bill.note ? ' (' + bill.note + ')' : ''}`
     });
 
+    return true;
+  },
+
+  updateBill(billId, updatedData) {
+    const state = this.load();
+    state.bills = state.bills || [];
+    const billIdx = state.bills.findIndex(b => b.id === billId);
+    if (billIdx === -1) return false;
+
+    const oldBill = state.bills[billIdx];
+    const dueDateChanged = updatedData.dueDate && updatedData.dueDate !== oldBill.dueDate;
+
+    state.bills[billIdx] = {
+      ...oldBill,
+      title: updatedData.title !== undefined ? updatedData.title : oldBill.title,
+      amount: updatedData.amount !== undefined ? updatedData.amount : oldBill.amount,
+      dueDate: updatedData.dueDate !== undefined ? updatedData.dueDate : oldBill.dueDate,
+      walletId: updatedData.walletId !== undefined ? updatedData.walletId : oldBill.walletId,
+      note: updatedData.note !== undefined ? updatedData.note : oldBill.note,
+      notified1d: dueDateChanged ? false : oldBill.notified1d,
+      notified12h: dueDateChanged ? false : oldBill.notified12h,
+      notified1h: dueDateChanged ? false : oldBill.notified1h,
+    };
+
+    this.save(state);
     return true;
   },
 

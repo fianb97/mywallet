@@ -97,6 +97,9 @@ function renderSettings(container) {
           <button type="button" class="btn btn--secondary btn-import-data" id="settings-del-cat-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;">
             ${mIcon('delete')} ${t('deleteCustomCategoryBtn')}
           </button>
+          <button type="button" class="btn btn--secondary btn-import-data" id="settings-reset-cat-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;">
+            ${mIcon('restart_alt')} ${t('resetCategoriesBtn')}
+          </button>
         </div>
       </div>
 
@@ -181,6 +184,16 @@ function renderSettings(container) {
     delCatBtn.addEventListener('click', () => {
       if (typeof openDeleteCategoryModal === 'function') {
         openDeleteCategoryModal('expense');
+      }
+    });
+  }
+
+  const resetCatBtn = container.querySelector('#settings-reset-cat-btn');
+  if (resetCatBtn) {
+    resetCatBtn.addEventListener('click', () => {
+      if (confirm(t('resetCategoriesConfirm'))) {
+        Store.resetCategories();
+        Toast.show(t('categoriesResetSuccess'), 'success');
       }
     });
   }

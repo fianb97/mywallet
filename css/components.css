@@ -824,7 +824,7 @@
   border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 700;
-  background: var(--surface-container);
+  background: var(--glass-bg);
   color: var(--on-surface);
   border: 1px solid var(--outline-variant);
   cursor: pointer;
@@ -840,7 +840,7 @@
 }
 
 .select-chip option {
-  background: var(--surface-container-high);
+  background: #ffffff;
   color: var(--on-surface);
   padding: 6px;
 }
@@ -862,4 +862,76 @@
 [data-theme="dark"] .select-chip:hover {
   background-color: rgba(255, 255, 255, 0.14);
   border-color: var(--primary);
+}
+
+/* ── App Splash Screen Overlay ── */
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-color: #00450d;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.splash-screen.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-screen__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: splashZoomIn 0.5s var(--ease-out);
+}
+
+.splash-screen__icon-container {
+  width: 110px;
+  height: 110px;
+  background: #ffffff;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  margin-bottom: 20px;
+}
+
+.splash-screen__title {
+  font-family: var(--font-primary);
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  margin: 0 0 4px 0;
+}
+
+.splash-screen__version {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.05em;
+}
+
+@keyframes splashZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

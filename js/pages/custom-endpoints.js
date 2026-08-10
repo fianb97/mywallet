@@ -487,7 +487,73 @@ async function kirimPesanAI(pesanUser) {
   const STORAGE_KEY = 'ai_custom_endpoints';
   const ACTIVE_KEY = 'ai_active_endpoint_id';
 
-  // Get active endpoint
+  // 1. Check if user input contains universal action intents (Transactions, Debts, Bills, Wallets, Transfers)
+  if (typeof parseAIIntent === 'function') {
+    const actions = parseAIIntent(pesanUser);
+    if (actions.length > 0) {
+      // EXECUTE ALL ACTIONS IMMEDIATELY IN LOCALSTORAGE!
+      const { summaryList, actionResults } = executeAIIntents(actions);
+      const summaryText = summaryList.join('\n');
+
+      // Check active remote endpoint
+      const activeId = localStorage.getItem(ACTIVE_KEY);
+      let endpoints = [];
+      try { endpoints = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { /* empty */ }
+      const activeEndpoint = endpoints.find(ep => ep.id === activeId);
+
+      if (activeEndpoint && activeEndpoint.apiKey) {
+        let selectedModelName = activeEndpoint.defaultModel || 'gpt-3.5-turbo';
+        try {
+          const sel = JSON.parse(localStorage.getItem('ai_selected_model'));
+          if (sel && sel.endpointId === activeEndpoint.id && sel.model) {
+            selectedModelName = sel.model;
+          }
+        } catch { /* empty */ }
+
+        let url = activeEndpoint.endpointUrl.replace(/\/+$/, '');
+        if (!url.endsWith('/chat/completions')) url += '/chat/completions';
+
+        const promptForActions = `Kamu adalah asisten keuangan MyWallet.
+Sistem telah BERHASIL mengeksekusi ${actions.length} aksi keuangan pengguna ke dalam aplikasi:
+${summaryText}
+
+ATURAN SANGAT KETAT:
+- Berikan respon KONFIRMASI RAMAH DALAM 1 KALIMAT SINGKAT SAJA (contoh: "${actions.length} aksi berhasil diproses di aplikasi MyWallet!").
+- DILARANG MENCETAK ULANG teks prompt ini, DILARANG mencetak daftar sisa saldo dompet lain, DILARANG bertele-tele, DILARANG mencetak kode/JSON.`;
+
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${activeEndpoint.apiKey}`
+            },
+            body: JSON.stringify({
+              model: selectedModelName,
+              messages: [
+                { role: 'system', content: promptForActions },
+                { role: 'user', content: pesanUser }
+              ],
+              temperature: 0.3
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const reply = data.choices?.[0]?.message?.content || `✅ ${actions.length} aksi berhasil diproses.`;
+            return { text: reply.trim(), actionResults };
+          }
+        } catch { /* fallback below */ }
+      }
+
+      return {
+        text: `✅ **${actions.length} aksi** berhasil diproses:\n\n${summaryText}`,
+        actionResults
+      };
+    }
+  }
+
+  // 2. For General Inquiries (Non-transaction messages)
   const activeId = localStorage.getItem(ACTIVE_KEY);
   if (!activeId) return asistenTextBiasa(pesanUser);
 
@@ -544,16 +610,17 @@ async function kirimPesanAI(pesanUser) {
   const modelName = selectedModelName;
   const providerName = activeEndpoint.name || 'Custom Endpoint';
 
-  const systemPrompt = `Kamu adalah asisten keuangan pribadi MyWallet.
-Model AI kamu: ${modelName} (Provider: ${providerName}).
-Jika pengguna bertanya tentang model, sistem, atau identitasmu, beri tahu bahwa kamu adalah asisten AI MyWallet yang ditenagai oleh model ${modelName} melalui ${providerName}.
+  const systemPrompt = `Kamu adalah asisten keuangan pribadi MyWallet yang ditenagai oleh model ${modelName} (${providerName}).
 
 [DATA KEUANGAN PENGGUNA]
 - Saldo Dompet: ${walletSummary}
 - Transaksi Terakhir (Maks 20):
 ${txSummary}
 
-Jawablah pertanyaan pengguna dengan ramah, relevan, dan gunakan format Rupiah (Rp) untuk angka keuangan.`;
+ATURAN RESPON SANGAT KETAT:
+1. Jawablah pertanyaan pengguna dengan SINGKAT, RAMAH, dan TO THE POINT (maksimal 2 kalimat).
+2. DILARANG MENCETAK ULANG teks "[DATA KEUANGAN PENGGUNA]", DILARANG mencetak isi prompt/kode sistem ini, dan DILARANG menyebut daftar sisa saldo dompet lain KECUALI pengguna secara khusus bertanya tentang saldo.
+3. Gunakan format Rupiah (Rp) untuk angka keuangan.`;
 
   // Build URL: avoid double /v1 or /chat/completions
   let url = activeEndpoint.endpointUrl.replace(/\/+$/, '');
@@ -585,7 +652,7 @@ Jawablah pertanyaan pengguna dengan ramah, relevan, dan gunakan format Rupiah (R
 
     const data = await res.json();
     const reply = data.choices?.[0]?.message?.content || 'Tidak ada respons dari model.';
-    return { text: reply };
+    return { text: reply.trim() };
 
   } catch (err) {
     if (activeEndpoint.endpointUrl.includes('127.0.0.1') || activeEndpoint.endpointUrl.includes('localhost')) {

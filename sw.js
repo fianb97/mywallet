@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mywallet-cache-v16';
+const CACHE_NAME = 'mywallet-cache-v24';
 const urlsToCache = [
   './',
   './index.html',
@@ -13,15 +13,24 @@ const urlsToCache = [
   './css/components.css',
   './css/pages.css',
   './js/utils.js',
+  './js/i18n.js',
   './js/store.js',
+  './js/ai-intents.js',
+  './js/ai-remote.js',
+  './js/tx-periods.js',
+  './js/tx-summary.js',
   './js/router.js',
   './js/components.js',
   './js/pages/dashboard.js',
   './js/pages/transactions.js',
+  './js/pages/transaction-form.js',
   './js/pages/wallets.js',
   './js/pages/debts.js',
   './js/pages/bills.js',
+  './js/ai-tools.js',
   './js/pages/ai-assistant.js',
+  './js/pages/custom-endpoints.js',
+  './js/pages/settings.js',
   './js/app.js'
 ];
 

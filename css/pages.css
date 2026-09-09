@@ -1,5 +1,5 @@
 /* ========================================
-   MyWallet — Pages (Verdant Glass)
+   MyWallet — Pages (Crisp Modern Fintech)
    ======================================== */
 
 /* ────────────────────────────────────────
@@ -28,23 +28,9 @@
 
 /* Adjusted Balance Card */
 .card--adjusted {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
+  background: var(--surface-container-lowest);
   border: 1px solid var(--outline-variant);
-}
-
-.card--adjusted::before {
-  content: '';
-  position: absolute;
-  top: -40px;
-  right: -40px;
-  width: 128px;
-  height: 128px;
-  background: rgba(65, 179, 117, 0.1);
-  border-radius: 50%;
-  filter: blur(40px);
-  pointer-events: none;
+  border-radius: var(--radius-lg);
 }
 
 .adjusted-sub {
@@ -174,24 +160,23 @@
   scroll-snap-align: start;
   flex-shrink: 0;
   width: 260px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
+  background: var(--surface-container-lowest);
   border: 1px solid var(--outline-variant);
-  border-radius: var(--radius-2xl);
-  padding: 20px;
+  border-radius: var(--radius-lg);
+  padding: 18px;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 144px;
+  height: 136px;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .wallet-scroll-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .wallet-scroll-card__top {
@@ -296,33 +281,33 @@
 }
 
 .tx-item__icon--expense {
-  background: rgba(0, 69, 13, 0.08);
-  color: var(--primary-container);
+  background: var(--color-expense-bg);
+  color: var(--color-expense);
 }
 
 [data-theme="dark"] .tx-item__icon--expense {
-  background: rgba(65, 179, 117, 0.16);
-  color: #41b375;
+  background: var(--color-expense-bg);
+  color: var(--color-expense);
 }
 
 .tx-item__icon--income {
-  background: rgba(102, 187, 106, 0.2);
+  background: var(--color-income-bg);
   color: var(--color-income);
 }
 
 [data-theme="dark"] .tx-item__icon--income {
-  background: rgba(65, 179, 117, 0.25);
-  color: #41b375;
+  background: var(--color-income-bg);
+  color: var(--color-income);
 }
 
 .tx-item__icon--transfer {
-  background: var(--surface-variant);
-  color: var(--on-surface-variant);
+  background: var(--surface-container-low);
+  color: var(--primary);
 }
 
 [data-theme="dark"] .tx-item__icon--transfer {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: var(--surface-container-low);
+  color: var(--primary);
 }
 
 .tx-item__info {
@@ -372,10 +357,8 @@
 
 /* Search & Filter Container */
 .filter-container {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
   padding: var(--glass-padding);
@@ -427,7 +410,6 @@
   padding: 6px 16px;
   border-radius: var(--radius-full);
   background: var(--surface);
-  backdrop-filter: blur(8px);
   border: 1px solid var(--outline-variant);
   box-shadow: var(--shadow-sm);
   font-size: 12px;
@@ -739,9 +721,7 @@
 
 /* Wallet Cards Grid */
 .wallet-card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
+  background: var(--surface-card);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-2xl);
   padding: 20px;
@@ -923,7 +903,6 @@
   min-height: 160px;
   border: 2px dashed var(--outline-variant);
   background: var(--surface-container-low);
-  backdrop-filter: blur(12px);
   color: var(--on-surface-variant);
   box-shadow: none;
 }
@@ -994,10 +973,8 @@
 
 /* Debt Items */
 .debt-item {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   padding: 16px;
   display: flex;
@@ -1112,7 +1089,7 @@
   justify-content: center;
   margin-bottom: 16px;
   box-shadow: 0 8px 24px rgba(27, 94, 32, 0.3);
-  border: 1px solid var(--glass-stroke);
+  border: 1px solid var(--outline-variant);
 }
 
 .ai-welcome__icon .material-symbols-outlined {
@@ -1144,9 +1121,8 @@
 .ai-welcome__prompt-chip {
   padding: 8px 16px;
   border-radius: var(--radius-full);
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   color: var(--primary);
   font-size: var(--fs-sm);
   font-weight: 500;
@@ -1213,7 +1189,7 @@
   justify-content: center;
   flex-shrink: 0;
   margin-bottom: 20px;
-  border: 1px solid var(--glass-stroke);
+  border: 1px solid var(--outline-variant);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1233,9 +1209,8 @@
   padding: 12px 16px;
   border-radius: var(--radius-lg);
   border-top-left-radius: 4px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   box-shadow: var(--shadow-sm);
   color: var(--on-surface);
 }
@@ -1355,9 +1330,8 @@
   gap: 6px;
   padding: 5px 12px;
   border-radius: var(--radius-full);
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   color: var(--on-surface);
   font-size: 12px;
   font-weight: 600;
@@ -1390,8 +1364,8 @@
   width: 28px;
   height: 28px;
   border-radius: var(--radius-full);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   color: var(--on-surface-variant);
   cursor: pointer;
   transition: all var(--duration-fast) ease;
@@ -1412,10 +1386,8 @@
   margin: 0 auto 8px;
   max-height: 320px;
   overflow-y: auto;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   padding: 10px;
   box-shadow: var(--shadow-lg);
@@ -1557,10 +1529,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   border-radius: var(--radius-full);
   padding: 4px 4px 4px 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
@@ -1573,7 +1543,6 @@
   padding: 10px 12px;
   font-size: var(--fs-base);
   box-shadow: none;
-  backdrop-filter: none;
 }
 
 .ai-input-bar input:focus {
@@ -1622,9 +1591,8 @@
 }
 
 .settings-item {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   border-radius: var(--radius-md);
   padding: 14px 16px;
   display: flex;
@@ -1748,8 +1716,8 @@
   justify-content: center;
   padding: 48px 24px;
   text-align: center;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   margin-bottom: 20px;
 }
@@ -1775,8 +1743,8 @@
 
 /* ── Endpoint Card ── */
 .ce-card {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   padding: 16px;
   margin-bottom: 12px;
@@ -1875,7 +1843,7 @@
 }
 
 .ce-card__btn--edit:hover {
-  background: var(--glass-bg-hover);
+  background: var(--surface-container-low);
   color: var(--primary);
 }
 
@@ -1941,7 +1909,7 @@
 }
 
 .ce-form-toggle:hover {
-  background: var(--glass-bg);
+  background: var(--surface-card);
   border-color: var(--primary);
 }
 
@@ -1966,8 +1934,8 @@
 }
 
 .ce-form {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-stroke);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   padding: 20px;
   display: flex;
@@ -2146,7 +2114,7 @@
 }
 
 .ce-btn--ghost:hover {
-  background: var(--glass-bg-hover);
+  background: var(--surface-container-low);
   color: var(--primary);
 }
 
@@ -2219,7 +2187,7 @@
 [data-theme="dark"] .ce-form__input,
 [data-theme="dark"] .ce-form__select {
   background: var(--surface-container-low);
-  border-color: var(--glass-stroke-strong);
+  border-color: var(--outline-variant);
   color: var(--on-surface);
 }
 

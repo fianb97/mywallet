@@ -129,7 +129,9 @@ const Utils = {
     if (!str) return '';
     if (!this._escapeEl) this._escapeEl = document.createElement('span');
     this._escapeEl.textContent = str;
-    return this._escapeEl.innerHTML;
+    // Browser tidak meng-escape kutip via innerHTML, padahal hasilnya juga
+    // dipakai di konteks atribut value="..." — escape manual di sini (cf. bug #6).
+    return this._escapeEl.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   },
 
   // Debounce

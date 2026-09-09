@@ -1,10 +1,10 @@
 /* ========================================
-   MyWallet — Verdant Glass Design Tokens
+   MyWallet — Crisp Modern Fintech Design Tokens
    ======================================== */
 
 :root {
   /* ── Body & Sidebar Theme Variables ── */
-  --body-bg:               #e1e6e3;
+  --body-bg:               #f4f6f5;
   --sidebar-bg:            #00450d;
   --sidebar-text:          #ffffff;
   --sidebar-icon:          #ffffff;
@@ -12,13 +12,13 @@
   --sidebar-active-text:   #ffffff;
 
   /* ── Primary Palette ── */
-  --primary:               #00450d;
-  --primary-container:     #1b5e20;
+  --primary:               #047857;
+  --primary-container:     #d1fae5;
   --on-primary:            #ffffff;
-  --on-primary-container:  #90d689;
-  --inverse-primary:       #91d78a;
-  --primary-fixed:         #acf4a4;
-  --primary-fixed-dim:     #91d78a;
+  --on-primary-container:  #064e3b;
+  --inverse-primary:       #34d399;
+  --primary-fixed:         #d1fae5;
+  --primary-fixed-dim:     #a7f3d0;
 
   /* ── Secondary Palette ── */
   --secondary:             #3c6842;
@@ -34,55 +34,65 @@
   --on-tertiary-container: #bcc9be;
 
   /* ── Surface & Background ── */
-  --surface:               #e1e6e3;
-  --surface-dim:           #d3d8d5;
-  --surface-bright:        #eaefee;
+  --surface:               #f4f6f5;
+  --surface-card:          #ffffff;
+  --surface-subtle:        #eef2ef;
+  --surface-dim:           #e8ede9;
+  --surface-bright:        #ffffff;
   --surface-container-lowest:  #ffffff;
-  --surface-container-low:     #e6ebe8;
-  --surface-container:         #e1e6e3;
-  --surface-container-high:    #dcdfeb;
-  --surface-container-highest: #d6dad7;
-  --surface-variant:       #d6dad7;
-  --surface-tint:          #2a6b2c;
-  --on-surface:            #191d17;
-  --on-surface-variant:    #41493e;
-  --on-background:         #191d17;
-  --background:            #e1e6e3;
-  --inverse-surface:       #2d322c;
-  --inverse-on-surface:    #eff2e9;
+  --surface-container-low:     #eef2ef;
+  --surface-container:         #e8ede9;
+  --surface-container-high:    #e2e8e4;
+  --surface-container-highest: #dce3de;
+  --surface-variant:       #dce3de;
+  --surface-tint:          #047857;
+  --on-surface:            #0f172a;
+  --on-surface-variant:    #475569;
+  --on-background:         #0f172a;
+  --background:            #f4f6f5;
+  --inverse-surface:       #1e293b;
+  --inverse-on-surface:    #f8fafc;
 
   /* ── Semantic Colors ── */
-  --color-income:    #2e7d32;
-  --color-income-bg: #bdefbe;
-  --color-expense:   #d32f2f;
-  --color-expense-bg:#ffdad6;
-  --color-debt:      #d32f2f;
-  --color-debt-bg:   #ffdad6;
-  --color-credit:    #2e7d32;
-  --color-credit-bg: #bdefbe;
-  --mint-accent:     #66bb6a;
+  --color-income:    #059669;
+  --color-income-bg: #ecfdf5;
+  --color-expense:   #e11d48;
+  --color-expense-bg:#fff1f2;
+  --color-debt:      #e11d48;
+  --color-debt-bg:   #fff1f2;
+  --color-credit:    #059669;
+  --color-credit-bg: #ecfdf5;
+  --accent-mint:     #10b981;
+  --mint-accent:     #10b981;
   --error:           #ba1a1a;
   --error-container: #ffdad6;
   --on-error:        #ffffff;
   --on-error-container: #93000a;
-  --danger:          #c62828;
+  --danger:          #e11d48;
 
-  /* ── Outline ── */
-  --outline:         #717a6d;
-  --outline-variant: #b8c0b5;
+  /* ── Outline (1px subtle borders) ── */
+  --outline:         #64748b;
+  --outline-variant: rgba(15, 23, 42, 0.08);
+  --border-subtle:   rgba(15, 23, 42, 0.08);
+  --border-focus:    #10b981;
 
-  /* ── Glass Effects ── */
-  --glass-bg:        rgba(255, 255, 255, 0.92);
-  --glass-bg-hover:  rgba(255, 255, 255, 0.98);
-  --glass-bg-light:  rgba(255, 255, 255, 0.75);
-  --glass-bg-strong: rgba(255, 255, 255, 0.96);
-  --glass-stroke:    rgba(0, 0, 0, 0.08);
-  --glass-stroke-strong: rgba(0, 0, 0, 0.12);
-  --glass-blur:      blur(12px);
-  --glass-blur-lg:   blur(24px);
-  --glass-blur-xl:   blur(32px);
-  --glass-shadow:    0 8px 24px rgba(0, 0, 0, 0.06), inset 0 1px 2px rgba(255, 255, 255, 0.8);
-  --glass-shadow-floating: 0 12px 36px rgba(0, 0, 0, 0.09), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+  /* ── Elevation (soft ambient shadows, no heavy blur) ── */
+  --shadow-card:     0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-floating: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+  /* ── Surface aliases for converted glass defs (solid, no blur) ── */
+  --glass-bg:        var(--surface-container-lowest);
+  --glass-bg-hover:  #f8fafc;
+  --glass-bg-light:  var(--surface-container-lowest);
+  --glass-bg-strong: var(--surface-container-lowest);
+  --glass-stroke:    var(--outline-variant);
+  --glass-stroke-strong: rgba(15, 23, 42, 0.12);
+  --glass-blur:      none;
+  --glass-blur-lg:   none;
+  --glass-blur-xl:   none;
+  --glass-shadow:    var(--shadow-card);
+  --glass-shadow-floating: var(--shadow-floating);
   --glass-shadow-hover: 0 16px 44px rgba(0, 0, 0, 0.12);
 
   /* ── Category Colors (kept for chart compatibility) ── */
@@ -178,71 +188,86 @@
   --border-glass:    var(--glass-stroke);
   --border-glass-light: var(--outline-variant);
   --border-glass-top:   var(--glass-stroke-strong);
-  --border-accent:   var(--mint-accent);
+  --border-accent:   var(--accent-mint);
   --accent-primary:  var(--primary);
-  --accent-secondary:var(--mint-accent);
+  --accent-secondary:var(--accent-mint);
   --accent-gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 50%, var(--secondary) 100%);
-  --shadow-sm:       0 2px 8px rgba(0, 69, 13, 0.04);
-  --shadow-md:       0 4px 16px rgba(0, 69, 13, 0.06);
-  --shadow-lg:       0 8px 32px rgba(0, 69, 13, 0.08);
-  --shadow-glow:     0 4px 20px rgba(102, 187, 106, 0.2);
+  --shadow-sm:       0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md:       0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg:       0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-card:     0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-floating: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-glow:     0 4px 20px rgba(16, 185, 129, 0.2);
 }
 
 /* ── Dark Mode Tokens (Clean Dark Background, White Text, Green Sidebar Links) ── */
 [data-theme="dark"] {
-  --body-bg:               #0b0e0c;
-  --background:            #0b0e0c;
+  --body-bg:               #0f1311;
+  --background:            #0f1311;
 
   /* Sidebar: Dark background with green icon & white text */
   --sidebar-bg:            #101411;
   --sidebar-text:          #ffffff;
-  --sidebar-icon:          #41b375;
-  --sidebar-active-bg:     rgba(65, 179, 117, 0.18);
+  --sidebar-icon:          #34d399;
+  --sidebar-active-bg:     rgba(52, 211, 153, 0.18);
   --sidebar-active-text:   #ffffff;
 
-  --primary:               #41b375;
-  --primary-container:     #143821;
-  --on-primary:            #ffffff;
-  --on-primary-container:  #81c784;
+  --primary:               #34d399;
+  --primary-container:     #064e3b;
+  --on-primary:            #06281e;
+  --on-primary-container:  #a7f3d0;
 
   --secondary:             #388e3c;
   --secondary-container:   #18381b;
   --on-secondary:          #ffffff;
   --on-secondary-container:#a5d6a7;
 
-  --surface:               #1a201c;
-  --surface-dim:           #0b0e0c;
-  --surface-bright:        #222a25;
-  --surface-container-lowest: #141a16;
-  --surface-container-low: #18201b;
-  --surface-container:     #1e2621;
-  --surface-container-high: #263029;
-  --surface-container-highest:#2e3a32;
-  --surface-variant:       #222a25;
+  --surface:               #0f1311;
+  --surface-card:          #171d19;
+  --surface-subtle:        #1f2722;
+  --surface-dim:           #0a0d0b;
+  --surface-bright:        #1f2722;
+  --surface-container-lowest: #171d19;
+  --surface-container-low: #1f2722;
+  --surface-container:     #26312a;
+  --surface-container-high: #2e3b33;
+  --surface-container-highest:#37463d;
+  --surface-variant:       #26312a;
 
   /* Text: Clean White for headings & main text */
-  --on-surface:            #ffffff;
+  --on-surface:            #f8fafc;
   --on-surface-variant:    #94a3b8;
-  --on-background:         #ffffff;
+  --on-background:         #f8fafc;
 
-  --color-income:    #41b375;
-  --color-income-bg: #102d1a;
-  --color-expense:   #f87171;
-  --color-expense-bg:#321616;
-  --color-debt:      #f87171;
-  --color-debt-bg:   #321616;
-  --color-credit:    #41b375;
-  --color-credit-bg: #102d1a;
-  --mint-accent:     #41b375;
+  --accent-mint:     #34d399;
+  --mint-accent:     #34d399;
+  --color-income:    #34d399;
+  --color-income-bg: #063b25;
+  --color-expense:   #fb7185;
+  --color-expense-bg:#381619;
+  --color-debt:      #fb7185;
+  --color-debt-bg:   #381619;
+  --color-credit:    #34d399;
+  --color-credit-bg: #063b25;
 
   --outline:         #64748b;
   --outline-variant: rgba(255, 255, 255, 0.08);
+  --border-subtle:   rgba(255, 255, 255, 0.08);
+  --border-focus:    #34d399;
 
-  --glass-bg:        #1a201c;
-  --glass-bg-hover:  #222a25;
-  --glass-bg-light:  #141a16;
-  --glass-bg-strong: #1e2521;
-  --glass-stroke:    rgba(255, 255, 255, 0.08);
+  --shadow-card:     0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-floating: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+
+  --glass-bg:        var(--surface-container-lowest);
+  --glass-bg-hover:  var(--surface-container-low);
+  --glass-bg-light:  var(--surface-container-lowest);
+  --glass-bg-strong: var(--surface-container-low);
+  --glass-stroke:    var(--outline-variant);
   --glass-stroke-strong: rgba(255, 255, 255, 0.14);
-  --glass-shadow:    0 8px 32px rgba(0, 0, 0, 0.5);
+  --glass-blur:      none;
+  --glass-blur-lg:   none;
+  --glass-blur-xl:   none;
+  --glass-shadow:    var(--shadow-card);
+  --glass-shadow-floating: var(--shadow-floating);
 }

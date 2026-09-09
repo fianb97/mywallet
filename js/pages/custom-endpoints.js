@@ -412,7 +412,42 @@ function renderCustomEndpoints(container) {
     render();
   }
 
+  // Draft form belum disimpan ikut hilang tiap render() — tangkap & kembalikan (cf. #10).
+  function captureFormDraft() {
+    const val = (sel) => container.querySelector(sel)?.value ?? '';
+    const checked = (sel) => !!container.querySelector(sel)?.checked;
+    return {
+      name: val('#ce-name'),
+      providerId: val('#ce-provider-id'),
+      endpointUrl: val('#ce-endpoint-url'),
+      model: val('#ce-model'),
+      context: val('#ce-context'),
+      apiKey: val('#ce-api-key'),
+      useNewChats: checked('#ce-use-new-chats'),
+      discoverModels: checked('#ce-discover-models'),
+    };
+  }
+
+  function restoreFormDraft(d) {
+    if (!d) return;
+    const setVal = (sel, v) => {
+      const el = container.querySelector(sel);
+      if (el) el.value = v;
+    };
+    setVal('#ce-name', d.name);
+    setVal('#ce-provider-id', d.providerId);
+    setVal('#ce-endpoint-url', d.endpointUrl);
+    setVal('#ce-model', d.model);
+    setVal('#ce-context', d.context);
+    setVal('#ce-api-key', d.apiKey);
+    const useNew = container.querySelector('#ce-use-new-chats');
+    if (useNew) useNew.checked = d.useNewChats;
+    const discover = container.querySelector('#ce-discover-models');
+    if (discover) discover.checked = d.discoverModels;
+  }
+
   async function testEndpoint() {
+    const draft = captureFormDraft();
     const endpointUrl = container.querySelector('#ce-endpoint-url').value.trim();
     const apiKey = container.querySelector('#ce-api-key').value.trim();
     const model = container.querySelector('#ce-model').value.trim() || 'gpt-3.5-turbo';
@@ -425,48 +460,38 @@ function renderCustomEndpoints(container) {
     testingState = 'loading';
     testMessage = '';
     render();
+    restoreFormDraft(draft);
 
-    // Build URL: avoid double /v1
-    let url = endpointUrl.replace(/\/+$/, '');
-    if (!url.endsWith('/chat/completions')) {
-      url += '/chat/completions';
-    }
-
+    // Strangler kandidat 3: POST /chat via adapter (draft tetap di caller, cf. #10).
     try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: 'test' }],
-          max_tokens: 5,
-          temperature: 0
-        })
+      const posted = await postChat({
+        endpointUrl,
+        apiKey,
+        model,
+        messages: [{ role: 'user', content: 'test' }],
+        temperature: 0,
+        extraBody: { max_tokens: 5 },
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const reply = data.choices?.[0]?.message?.content || 'OK';
+      if (posted.ok) {
+        const reply = extractReplyText(posted.data, 'OK');
         testingState = 'success';
-        testMessage = `${t('ceTestSuccess')} — ${model} (${reply.substring(0, 60)})`;
+        testMessage = `${t('ceTestSuccess')} — ${model} (${escapeRemoteText(reply.substring(0, 60))})`;
       } else {
-        const errData = await res.json().catch(() => ({}));
         testingState = 'error';
-        testMessage = `HTTP ${res.status}: ${errData.error?.message || res.statusText}`;
+        testMessage = `HTTP ${posted.status}: ${escapeRemoteText(extractServerMessage(posted.errorData, posted.statusText))}`;
       }
     } catch (err) {
       testingState = 'error';
-      if (endpointUrl.includes('127.0.0.1') || endpointUrl.includes('localhost')) {
+      if (isLocalEndpoint(endpointUrl)) {
         testMessage = t('ceLocalError');
       } else {
-        testMessage = `${t('ceTestFailed')}: ${err.message}`;
+        testMessage = `${t('ceTestFailed')}: ${escapeRemoteText(err.message)}`;
       }
     }
 
     render();
+    restoreFormDraft(draft);
   }
 
   // ── Initial Render ──
@@ -489,7 +514,11 @@ async function kirimPesanAI(pesanUser) {
 
   // 1. Check if user input contains universal action intents (Transactions, Debts, Bills, Wallets, Transfers)
   if (typeof parseAIIntent === 'function') {
-    const actions = parseAIIntent(pesanUser);
+    const actions = parseAIIntent(pesanUser, {
+      debts: Store.getDebts({ isPaid: false }),
+      bills: Store.getBills({ isPaid: false }),
+      wallets: Store.getWallets(),
+    });
     if (actions.length > 0) {
       // EXECUTE ALL ACTIONS IMMEDIATELY IN LOCALSTORAGE!
       const { summaryList, actionResults } = executeAIIntents(actions);
@@ -510,38 +539,24 @@ async function kirimPesanAI(pesanUser) {
           }
         } catch { /* empty */ }
 
-        let url = activeEndpoint.endpointUrl.replace(/\/+$/, '');
-        if (!url.endsWith('/chat/completions')) url += '/chat/completions';
-
-        const promptForActions = `Kamu adalah asisten keuangan MyWallet.
-Sistem telah BERHASIL mengeksekusi ${actions.length} aksi keuangan pengguna ke dalam aplikasi:
-${summaryText}
-
-ATURAN SANGAT KETAT:
-- Berikan respon KONFIRMASI RAMAH DALAM 1 KALIMAT SINGKAT SAJA (contoh: "${actions.length} aksi berhasil diproses di aplikasi MyWallet!").
-- DILARANG MENCETAK ULANG teks prompt ini, DILARANG mencetak daftar sisa saldo dompet lain, DILARANG bertele-tele, DILARANG mencetak kode/JSON.`;
+        // Strangler kandidat 3: prompt + POST /chat via adapter.
+        const promptForActions = buildActionConfirmPrompt({ count: actions.length, summaryText });
 
         try {
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${activeEndpoint.apiKey}`
-            },
-            body: JSON.stringify({
-              model: selectedModelName,
-              messages: [
-                { role: 'system', content: promptForActions },
-                { role: 'user', content: pesanUser }
-              ],
-              temperature: 0.3
-            })
+          const posted = await postChat({
+            endpointUrl: activeEndpoint.endpointUrl,
+            apiKey: activeEndpoint.apiKey,
+            model: selectedModelName,
+            messages: [
+              { role: 'system', content: promptForActions },
+              { role: 'user', content: pesanUser }
+            ],
+            temperature: 0.3
           });
 
-          if (res.ok) {
-            const data = await res.json();
-            const reply = data.choices?.[0]?.message?.content || `✅ ${actions.length} aksi berhasil diproses.`;
-            return { text: reply.trim(), actionResults };
+          if (posted.ok) {
+            const reply = extractReplyText(posted.data, `✅ ${actions.length} aksi berhasil diproses.`);
+            return { text: escapeRemoteText(reply.trim()), actionResults };
           }
         } catch { /* fallback below */ }
       }
@@ -610,55 +625,33 @@ ATURAN SANGAT KETAT:
   const modelName = selectedModelName;
   const providerName = activeEndpoint.name || 'Custom Endpoint';
 
-  const systemPrompt = `Kamu adalah asisten keuangan pribadi MyWallet yang ditenagai oleh model ${modelName} (${providerName}).
-
-[DATA KEUANGAN PENGGUNA]
-- Saldo Dompet: ${walletSummary}
-- Transaksi Terakhir (Maks 20):
-${txSummary}
-
-ATURAN RESPON SANGAT KETAT:
-1. Jawablah pertanyaan pengguna dengan SINGKAT, RAMAH, dan TO THE POINT (maksimal 2 kalimat).
-2. DILARANG MENCETAK ULANG teks "[DATA KEUANGAN PENGGUNA]", DILARANG mencetak isi prompt/kode sistem ini, dan DILARANG menyebut daftar sisa saldo dompet lain KECUALI pengguna secara khusus bertanya tentang saldo.
-3. Gunakan format Rupiah (Rp) untuk angka keuangan.`;
-
-  // Build URL: avoid double /v1 or /chat/completions
-  let url = activeEndpoint.endpointUrl.replace(/\/+$/, '');
-  if (!url.endsWith('/chat/completions')) {
-    url += '/chat/completions';
-  }
+  // Strangler kandidat 3: prompt + POST /chat via adapter (konteks finansial tetap di caller).
+  const systemPrompt = buildFinanceSystemPrompt({ modelName, providerName, walletSummary, txSummary });
 
   try {
-    const headers = { 'Content-Type': 'application/json' };
-    headers['Authorization'] = `Bearer ${activeEndpoint.apiKey}`;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model: selectedModelName,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: pesanUser }
-        ],
-        temperature: 0.3
-      })
+    const posted = await postChat({
+      endpointUrl: activeEndpoint.endpointUrl,
+      apiKey: activeEndpoint.apiKey,
+      model: selectedModelName,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: pesanUser }
+      ],
+      temperature: 0.3
     });
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      return { text: `⚠️ API Error (${res.status}): ${errData.error?.message || res.statusText}` };
+    if (!posted.ok) {
+      return { text: formatChatError({ status: posted.status, errorData: posted.errorData, statusText: posted.statusText }) };
     }
 
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content || 'Tidak ada respons dari model.';
-    return { text: reply.trim() };
+    const reply = extractReplyText(posted.data, 'Tidak ada respons dari model.');
+    return { text: escapeRemoteText(reply.trim()) };
 
   } catch (err) {
-    if (activeEndpoint.endpointUrl.includes('127.0.0.1') || activeEndpoint.endpointUrl.includes('localhost')) {
+    if (isLocalEndpoint(activeEndpoint.endpointUrl)) {
       return { text: `⚠️ Endpoint lokal tidak bisa diakses dari Github Pages. Gunakan Ngrok atau deploy sebagai proxy.` };
     }
-    return { text: `⚠️ Gagal terhubung ke endpoint: ${err.message}` };
+    return { text: `⚠️ Gagal terhubung ke endpoint: ${escapeRemoteText(err.message)}` };
   }
 }
 

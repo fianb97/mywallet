@@ -18,22 +18,27 @@ const Router = {
 
   // Handle hash change
   handleRoute() {
-    const hash = window.location.hash.slice(1) || 'dashboard';
-    const renderFn = this.routes[hash];
+    let hash = window.location.hash.slice(1) || 'dashboard';
+    let renderFn = this.routes[hash];
 
-    if (renderFn) {
-      this.currentPage = hash;
-      const content = document.getElementById('page-content');
-      if (content) {
-        content.innerHTML = '';
-        content.className = 'page-content animate-fade-in';
-        renderFn(content);
-      }
-      // Update active states
-      this.updateActiveNav(hash);
-      this.updateHeaderTitle(hash);
-      this.updateFAB(hash);
+    // Unknown hash: fall back to dashboard instead of a blank page (cf. #7).
+    if (!renderFn && hash !== 'dashboard') {
+      hash = 'dashboard';
+      renderFn = this.routes[hash];
     }
+    if (!renderFn) return;
+
+    this.currentPage = hash;
+    const content = document.getElementById('page-content');
+    if (content) {
+      content.innerHTML = '';
+      content.className = 'page-content animate-fade-in';
+      renderFn(content);
+    }
+    // Update active states
+    this.updateActiveNav(hash);
+    this.updateHeaderTitle(hash);
+    this.updateFAB(hash);
   },
 
   // Show/Hide FAB button based on route (hide on AI assistant page)

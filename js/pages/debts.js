@@ -153,7 +153,7 @@ function renderDebts(container) {
                     <div class="debt-item__info">
                       <span class="debt-item__name">${Utils.escapeHtml(d.personName)}</span>
                       <span class="debt-item__desc">
-                        ${Utils.formatDate(d.date)} • ${w ? w.name : '—'}
+                        ${Utils.formatDate(d.date)} • ${w ? Utils.escapeHtml(w.name) : '—'}
                         ${d.note ? ' • ' + Utils.escapeHtml(d.note) : ''}
                         ${d.isPaid ? ' • ✅ ' + t('paidStatus') + ' ' + Utils.formatDate(d.paidDate) : ''}
                       </span>
@@ -209,7 +209,8 @@ function renderDebts(container) {
     container.querySelectorAll('.del-debt-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        Store.deleteDebt(btn.dataset.id);
+        const ok = Store.deleteDebt(btn.dataset.id);
+        if (!ok) { Toast.show(t('insufficientBalance'), 'error'); return; }
         render();
         Toast.show(t('recordDeleted'), 'success');
       });
@@ -270,10 +271,14 @@ function renderDebts(container) {
             Toast.show(t('selectWalletWarning'), 'warning');
             return;
           }
-          Store.markDebtPaid(debtId, selectedWalletId);
-          Modal.close();
-          render();
-          Toast.show(t('markedPaid'), 'success');
+          const ok = Store.markDebtPaid(debtId, selectedWalletId);
+          if (ok) {
+            Modal.close();
+            render();
+            Toast.show(t('markedPaid'), 'success');
+          } else {
+            Toast.show(t('insufficientBalance'), 'error');
+          }
         });
       }
     });

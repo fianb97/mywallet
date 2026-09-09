@@ -1,5 +1,5 @@
 /* ========================================
-   MyWallet — Base (Verdant Glass)
+   MyWallet — Base (Crisp Modern Fintech)
    ======================================== */
 
 /* ── Reset ── */
@@ -20,8 +20,8 @@ body {
   font-family: var(--font-primary);
   font-size: var(--fs-base);
   line-height: var(--lh-normal);
-  color: var(--on-background);
-  background: var(--body-bg);
+  color: var(--on-surface);
+  background-color: var(--body-bg);
   background-attachment: fixed;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
@@ -30,41 +30,7 @@ body {
   position: relative;
 }
 
-/* ── Atmospheric background blobs for glassmorphism depth ── */
-body::before,
-body::after {
-  content: '';
-  position: fixed;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: -1;
-}
-
-body::before {
-  top: -10%;
-  left: -10%;
-  width: 75%;
-  height: 75%;
-  background: var(--primary-fixed);
-  opacity: 0.12;
-  filter: blur(120px);
-}
-
-body::after {
-  bottom: -10%;
-  right: -10%;
-  width: 75%;
-  height: 75%;
-  background: var(--secondary-container);
-  opacity: 0.15;
-  filter: blur(140px);
-}
-
-/* Hide bright atmospheric blobs in Dark Mode */
-[data-theme="dark"] body::before,
-[data-theme="dark"] body::after {
-  display: none;
-}
+/* ── Solid clean background (no heavy blur blobs for performance) ── */
 
 /* ── Material Symbols Outlined ── */
 .material-symbols-outlined {
@@ -98,6 +64,7 @@ a {
 /* ── Typography Utilities ── */
 .mono {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .text-income   { color: var(--color-income) !important; }
@@ -117,9 +84,10 @@ a {
   text-transform: uppercase;
 }
 
-/* ── Numeric Typography ── */
+/* ── Numeric Typography (tabular figures for financial alignment) ── */
 .numeric-lg {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 24px;
   font-weight: 600;
   line-height: 32px;
@@ -128,6 +96,7 @@ a {
 
 .numeric-md {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 16px;
   font-weight: 500;
   line-height: 20px;
@@ -209,13 +178,13 @@ input, select, textarea {
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+  border-color: var(--border-focus, var(--accent-mint));
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
   background: var(--surface-bright);
 }
 
 input::placeholder {
-  color: var(--outline-variant);
+  color: var(--on-surface-variant); /* 7.4:1 on surface — readable, not decorative */
 }
 
 select {

@@ -182,109 +182,91 @@ Tugas Anda adalah membantu pengguna mengelola keuangan pribadi secara otomatis, 
  */
 function executeAIToolCall(toolName, args = {}) {
   const wallets = Store.getWallets();
-  const resolveWalletId = (wName) => {
-    if (!wName) return wallets[0]?.id || '';
-    const found = wallets.find(w => w.name.toLowerCase().includes(wName.toLowerCase()));
-    return found ? found.id : (wallets[0]?.id || '');
-  };
 
   if (toolName === 'add_transaction') {
-    const walletId = resolveWalletId(args.walletName);
-    const tx = Store.addTransaction({
+    const result = executeIntent({
+      intent: 'ADD_TRANSACTION',
       type: args.type || 'expense',
       amount: Math.abs(args.amount || 0),
       category: args.category || 'food',
-      walletId,
-      date: Utils.today(),
-      note: args.note || (args.type === 'income' ? 'Pemasukan' : 'Pengeluaran')
+      walletName: args.walletName || '',
+      note: args.note || (args.type === 'income' ? 'Pemasukan' : 'Pengeluaran'),
     });
+    if (!result.ok) return result;
     return {
       intent: 'ADD_TRANSACTION',
-      txData: tx,
-      created: tx
+      txData: result.txData,
+      created: result.txData
     };
   }
 
   if (toolName === 'manage_debt') {
-    const walletId = resolveWalletId(args.walletName);
+    const walletId = resolveFallbackWalletId(wallets, args.walletName);
     const personName = args.personName || 'Teman';
     const amount = Math.abs(args.amount || 0);
 
     if (args.action === 'pay') {
-      const debts = Store.getDebts({ isPaid: false });
-      const found = debts.find(d => d.personName.toLowerCase().includes(personName.toLowerCase()) || personName.toLowerCase().includes(d.personName.toLowerCase()));
-
-      if (found) {
-        Store.markDebtPaid(found.id, walletId);
-        return { intent: 'PAY_DEBT', debt: found, personName: found.personName, amount: found.amount };
-      } else {
-        const state = Store.load();
-        state.debts = state.debts || [];
-        const newPaid = {
-          id: Utils.id(),
-          type: 'debt',
-          personName,
-          amount,
-          walletId,
-          date: Utils.today(),
-          note: `Pelunasan Hutang ${personName}`,
-          isPaid: true,
-          paidDate: Utils.today(),
-          paidWalletId: walletId,
-          createdAt: Date.now()
-        };
-        const wIdx = state.wallets.findIndex(w => w.id === walletId);
-        if (wIdx !== -1) state.wallets[wIdx].balance -= amount;
-        state.debts.push(newPaid);
-        Store.save(state);
-        return { intent: 'PAY_DEBT', debt: newPaid, personName, amount };
-      }
+      const result = executeIntent({
+        intent: 'PAY_DEBT',
+        personName,
+        walletName: args.walletName || '',
+        amount,
+      });
+      if (!result.ok) return result;
+      return { intent: 'PAY_DEBT', debt: result.debt, personName: result.personName, amount: result.amount };
     } else {
       const isReceivable = args.type === 'receivable';
-      const created = Store.addDebt({
+      const result = executeIntent({
+        intent: 'ADD_DEBT',
         type: isReceivable ? 'receivable' : 'debt',
         personName,
         amount,
         walletId,
-        date: Utils.today(),
-        note: args.note || `${isReceivable ? 'Piutang' : 'Hutang'} ${personName}`
+        note: args.note || `${isReceivable ? 'Piutang' : 'Hutang'} ${personName}`,
       });
-      return { intent: 'ADD_DEBT', debtData: created, created };
+      return { intent: 'ADD_DEBT', debtData: result.debtData, created: result.created };
     }
   }
 
   if (toolName === 'manage_bill') {
-    const walletId = resolveWalletId(args.walletName);
+    const walletId = resolveFallbackWalletId(wallets, args.walletName);
     const title = args.title || 'Tagihan';
     const amount = Math.abs(args.amount || 0);
 
     if (args.action === 'pay') {
-      const bills = Store.getBills({ isPaid: false });
-      const found = bills.find(b => b.title.toLowerCase().includes(title.toLowerCase()) || title.toLowerCase().includes(b.title.toLowerCase()));
-
-      if (found) {
-        Store.markBillPaid(found.id, walletId);
-        return { intent: 'PAY_BILL', bill: found, title: found.title };
-      } else {
-        const created = Store.addBill({ title, amount, dueDate: args.dueDate || Utils.today(), walletId, note: `Tagihan ${title}` });
-        Store.markBillPaid(created.id, walletId);
-        return { intent: 'PAY_BILL', bill: created, title };
-      }
+      const result = executeIntent({
+        intent: 'PAY_BILL',
+        title,
+        walletName: args.walletName || '',
+        amount,
+        dueDate: args.dueDate,
+      });
+      if (!result.ok) return result;
+      return { intent: 'PAY_BILL', bill: result.bill, title: result.title };
     } else {
-      const created = Store.addBill({ title, amount, dueDate: args.dueDate || Utils.today(), walletId, note: `Tagihan ${title}` });
-      return { intent: 'ADD_BILL', billData: created, created };
+      const result = executeIntent({
+        intent: 'ADD_BILL',
+        title,
+        amount,
+        dueDate: args.dueDate,
+        walletId,
+        note: `Tagihan ${title}`,
+      });
+      return { intent: 'ADD_BILL', billData: result.billData, created: result.created };
     }
   }
 
   if (toolName === 'manage_wallet') {
     const amount = Math.abs(args.amount || 0);
     if (args.action === 'transfer') {
-      const fromW = wallets.find(w => w.name.toLowerCase().includes((args.fromWalletName || '').toLowerCase())) || wallets[0];
-      const toW = wallets.find(w => w.name.toLowerCase().includes((args.toWalletName || '').toLowerCase())) || wallets[1];
-      if (fromW && toW) {
-        Store.transfer(fromW.id, toW.id, amount);
-        return { intent: 'TRANSFER_WALLET', fromWallet: fromW, toWallet: toW, amount };
-      }
+      const result = executeIntent({
+        intent: 'TRANSFER_WALLET',
+        fromWalletName: args.fromWalletName || '',
+        toWalletName: args.toWalletName || '',
+        amount,
+      });
+      if (!result.ok) return result;
+      return { intent: 'TRANSFER_WALLET', fromWallet: result.fromWallet, toWallet: result.toWallet, amount: result.amount };
     } else {
       const created = Store.addWallet({ name: args.name || 'Dompet Baru', type: 'ewallet', balance: amount });
       return { intent: 'ADD_WALLET', walletData: created, created };

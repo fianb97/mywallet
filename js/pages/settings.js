@@ -150,20 +150,13 @@ function renderSettings(container) {
       const newLang = e.target.value;
       Store.setLanguage(newLang);
 
-      // Refresh shell UI components
-      const sidebarElem = document.getElementById('sidebar');
-      const headerElem = document.getElementById('header');
-      const bottomNavElem = document.getElementById('bottom-nav');
-
-      if (sidebarElem) sidebarElem.outerHTML = renderSidebar();
-      if (headerElem) headerElem.outerHTML = renderHeader();
-      if (bottomNavElem) bottomNavElem.outerHTML = renderBottomNav();
-
-      if (typeof bindAppEvents === 'function') bindAppEvents();
-      if (typeof Router !== 'undefined' && Router.updateHeaderTitle) {
-        Router.updateHeaderTitle('settings');
-      }
-      renderSettings(container);
+      // Refresh shell satu pintu (cf. Kandidat 5); Toast milik caller.
+      refreshShell(() => {
+        if (typeof Router !== 'undefined' && Router.updateHeaderTitle) {
+          Router.updateHeaderTitle('settings');
+        }
+        renderSettings(container);
+      });
 
       Toast.show(newLang === 'id' ? 'Bahasa diubah ke Bahasa Indonesia 🇮🇩' : 'Language changed to English 🇬🇧', 'success');
     });

@@ -62,7 +62,7 @@ function renderWallets(container) {
                     <span class="wallet-card__type wallet-card__type--${w.type}">${typeLabel}</span>
                   </div>
                 </div>
-                <button class="wallet-card__menu">${mIcon('more_vert')}</button>
+                <button class="wallet-card__menu" tabindex="-1" aria-hidden="true">${mIcon('more_vert')}</button>
               </div>
               <div class="wallet-card__bottom">
                 <div class="wallet-card__balance-label">${t('balance')}</div>

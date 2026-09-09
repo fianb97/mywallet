@@ -316,6 +316,8 @@ function renderBills(container) {
             Modal.close();
             Router.handleRoute();
             Toast.show(t('billPaidSuccess'), 'success');
+          } else {
+            Toast.show(t('insufficientBalance'), 'error');
           }
         });
       }
@@ -386,7 +388,8 @@ function openBillForm(billToEdit = null) {
         if (!amount || amount <= 0) { Toast.show(t('invalidAmount'), 'warning'); return; }
 
         if (isEditing) {
-          Store.updateBill(billToEdit.id, { title, amount, dueDate, walletId: selectedWalletId, note });
+          const ok = Store.updateBill(billToEdit.id, { title, amount, dueDate, walletId: selectedWalletId, note });
+          if (!ok) { Toast.show(t('insufficientBalance'), 'error'); return; }
           Toast.show(t('billUpdated') || (I18n.getLang() === 'id' ? 'Tagihan berhasil diperbarui!' : 'Bill updated!'), 'success');
         } else {
           Store.addBill({ title, amount, dueDate, walletId: selectedWalletId, note });

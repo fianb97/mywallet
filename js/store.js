@@ -18,7 +18,54 @@ const Store = {
     };
   },
 
-  // Load from localStorage (with in-memory caching)
+  // Apply stored settings to the environment (language, theme, categories).
+  // Called ONCE from initApp — deliberately NOT from load(), so load/save
+  // stay pure persistence (cf. kandidat 2).
+  syncEnvironment(state) {
+    const s = state || this.load();
+    // Sync language setting to I18n
+    if (s.settings && s.settings.lang) {
+      I18n.currentLang = s.settings.lang;
+    }
+    // Sync theme setting to DOM
+    if (s.settings && s.settings.theme) {
+      document.documentElement.setAttribute('data-theme', s.settings.theme);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+    // Sync categories to memory (reset to DEFAULT_CATEGORIES first)
+    if (typeof DEFAULT_CATEGORIES !== 'undefined') {
+      for (const k in CATEGORIES) delete CATEGORIES[k];
+      Object.assign(CATEGORIES, JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)));
+    }
+
+    // Apply deleted categories filter
+    if (s.deletedCategories && Array.isArray(s.deletedCategories)) {
+      s.deletedCategories.forEach(key => {
+        delete CATEGORIES[key];
+      });
+    }
+
+    // Apply custom categories (sanitasi: batas import, cf. audit K6).
+    // Tanpa persistensi di sini — state asing tetap apa adanya di storage,
+    // yang dirender selalu versi bersih.
+    if (s.customCategories && Array.isArray(s.customCategories)) {
+      s.customCategories.forEach(c => {
+        const clean = this.sanitizeCustomCategory(c);
+        CATEGORIES[clean.key] = {
+          name: clean.name,
+          icon: mIcon(clean.iconName),
+          color: clean.color,
+          type: clean.type,
+          isCustom: true
+        };
+      });
+    }
+    return s;
+  },
+
+  // Load from localStorage (with in-memory caching). Pure persistence:
+  // no I18n/DOM/category side effects (see syncEnvironment).
   load() {
     // Return cached state if available
     if (this._state) return this._state;
@@ -28,41 +75,6 @@ const Store = {
       if (raw) {
         const parsed = JSON.parse(raw);
         const state = { ...this.defaultState(), ...parsed };
-        // Sync language setting to I18n
-        if (state.settings && state.settings.lang) {
-          I18n.currentLang = state.settings.lang;
-        }
-        // Sync theme setting to DOM
-        if (state.settings && state.settings.theme) {
-          document.documentElement.setAttribute('data-theme', state.settings.theme);
-        } else {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
-        // Sync categories to memory (reset to DEFAULT_CATEGORIES first)
-        if (typeof DEFAULT_CATEGORIES !== 'undefined') {
-          for (const k in CATEGORIES) delete CATEGORIES[k];
-          Object.assign(CATEGORIES, JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)));
-        }
-
-        // Apply deleted categories filter
-        if (state.deletedCategories && Array.isArray(state.deletedCategories)) {
-          state.deletedCategories.forEach(key => {
-            delete CATEGORIES[key];
-          });
-        }
-
-        // Apply custom categories
-        if (state.customCategories && Array.isArray(state.customCategories)) {
-          state.customCategories.forEach(c => {
-            CATEGORIES[c.key] = {
-              name: c.name,
-              icon: mIcon(c.iconName || 'label'),
-              color: c.color || 'var(--mint-accent)',
-              type: c.type,
-              isCustom: true
-            };
-          });
-        }
         this._state = state; // Cache the parsed state
         return state;
       }
@@ -72,6 +84,26 @@ const Store = {
     const def = this.defaultState();
     this._state = def;
     return def;
+  },
+
+  // tryApplyDeltas(state, [{ walletId, delta }]) — satu-satunya rumah
+  // invariant saldo (kandidat 2): validasi SEMUA saldo hasil >= 0 SEBELUM
+  // mutasi apa pun. Dompet tak dikenal atau delta bukan-number -> false.
+  // Pencatatan (addDebt/addBill) sengaja tidak lewat sini (Q4).
+  tryApplyDeltas(state, deltas) {
+    const balances = new Map(state.wallets.map(w => [w.id, w.balance]));
+    for (const { walletId, delta } of deltas || []) {
+      if (!balances.has(walletId)) return false;
+      if (typeof delta !== 'number' || Number.isNaN(delta)) return false;
+      balances.set(walletId, balances.get(walletId) + delta);
+    }
+    for (const b of balances.values()) {
+      if (b < 0) return false;
+    }
+    for (const w of state.wallets) {
+      w.balance = balances.get(w.id);
+    }
+    return true;
   },
 
   // Save to localStorage and update in-memory cache
@@ -145,7 +177,18 @@ const Store = {
   // ── Transaction Operations ──
 
   addTransaction(tx) {
+    if (!(tx.amount > 0)) return null; // tolak NaN, nol, negatif (cf. bug #4)
     const state = this.load();
+    if (tx.type === 'expense') {
+      if (!this.tryApplyDeltas(state, [{ walletId: tx.walletId, delta: -tx.amount }])) return null;
+    } else {
+      // income: wallet unknown -> record still created (paritas lama), else apply
+      const wIdx = state.wallets.findIndex(w => w.id === tx.walletId);
+      if (wIdx !== -1) {
+        if (!this.tryApplyDeltas(state, [{ walletId: tx.walletId, delta: tx.amount }])) return null;
+      }
+    }
+
     const newTx = {
       id: Utils.id(),
       type: tx.type,             // 'income' | 'expense'
@@ -156,16 +199,6 @@ const Store = {
       note: tx.note || '',
       createdAt: Date.now()
     };
-
-    // Update wallet balance
-    const wIdx = state.wallets.findIndex(w => w.id === tx.walletId);
-    if (wIdx !== -1) {
-      if (tx.type === 'income') {
-        state.wallets[wIdx].balance += newTx.amount;
-      } else {
-        state.wallets[wIdx].balance -= newTx.amount;
-      }
-    }
 
     state.transactions.push(newTx);
     this.save(state);
@@ -178,31 +211,26 @@ const Store = {
     if (txIdx === -1) return null;
 
     const oldTx = state.transactions[txIdx];
-
-    // Reverse old wallet balance
-    const oldWIdx = state.wallets.findIndex(w => w.id === oldTx.walletId);
-    if (oldWIdx !== -1) {
-      if (oldTx.type === 'income') {
-        state.wallets[oldWIdx].balance -= oldTx.amount;
-      } else {
-        state.wallets[oldWIdx].balance += oldTx.amount;
-      }
-    }
-
-    // Apply updates
     const newTx = { ...oldTx, ...updates, amount: Math.abs(updates.amount || oldTx.amount) };
-    state.transactions[txIdx] = newTx;
+    if (!(newTx.amount > 0)) return null;
 
-    // Apply new wallet balance
-    const newWIdx = state.wallets.findIndex(w => w.id === newTx.walletId);
-    if (newWIdx !== -1) {
-      if (newTx.type === 'income') {
-        state.wallets[newWIdx].balance += newTx.amount;
-      } else {
-        state.wallets[newWIdx].balance -= newTx.amount;
-      }
+    // Kumpulkan delta per dompet: reverse old + apply new, validasi atomik.
+    const deltas = [];
+    const addDelta = (walletId, delta) => {
+      const ex = deltas.find(d => d.walletId === walletId);
+      if (ex) ex.delta += delta; else deltas.push({ walletId, delta });
+    };
+    if (oldTx.walletId) {
+      addDelta(oldTx.walletId, oldTx.type === 'income' ? -oldTx.amount : oldTx.amount);
     }
+    if (newTx.walletId) {
+      addDelta(newTx.walletId, newTx.type === 'income' ? newTx.amount : -newTx.amount);
+    }
+    // Wallet unknown diabaikan untuk paritas lama; delta dikenal divalidasi atomik.
+    const knownDeltas = deltas.filter(d => state.wallets.some(w => w.id === d.walletId));
+    if (knownDeltas.length > 0 && !this.tryApplyDeltas(state, knownDeltas)) return null;
 
+    state.transactions[txIdx] = newTx;
     this.save(state);
     return newTx;
   },
@@ -210,24 +238,18 @@ const Store = {
   deleteTransaction(id) {
     const state = this.load();
     const tx = state.transactions.find(t => t.id === id);
-    if (!tx) return;
-
-    // Reverse wallet balance
-    const wIdx = state.wallets.findIndex(w => w.id === tx.walletId);
-    if (wIdx !== -1) {
-      if (tx.type === 'income') {
-        state.wallets[wIdx].balance -= tx.amount;
-      } else {
-        state.wallets[wIdx].balance += tx.amount;
-      }
+    if (!tx) return false;
+    if (tx.walletId && state.wallets.some(w => w.id === tx.walletId)) {
+      const delta = tx.type === 'income' ? -tx.amount : tx.amount;
+      if (!this.tryApplyDeltas(state, [{ walletId: tx.walletId, delta }])) return false;
     }
-
     state.transactions = state.transactions.filter(t => t.id !== id);
     this.save(state);
+    return true;
   },
 
   getTransactions(filters = {}) {
-    let txs = this.load().transactions;
+    let txs = this.load().transactions.slice(); // salin: sort di bawah tak boleh mengubah state
 
     if (filters.type) txs = txs.filter(t => t.type === filters.type);
     if (filters.walletId) txs = txs.filter(t => t.walletId === filters.walletId);
@@ -332,53 +354,43 @@ const Store = {
   markDebtPaid(id, paidWalletId = null) {
     const state = this.load();
     const dIdx = state.debts.findIndex(d => d.id === id);
-    if (dIdx === -1) return;
+    if (dIdx === -1) return false;
 
     const debt = state.debts[dIdx];
+    if (debt.isPaid) return false;
+
+    const targetWalletId = paidWalletId || debt.walletId;
+    if (debt.type !== 'receivable') {
+      if (!this.tryApplyDeltas(state, [{ walletId: targetWalletId, delta: -debt.amount }])) return false;
+    } else {
+      if (!this.tryApplyDeltas(state, [{ walletId: targetWalletId, delta: debt.amount }])) return false;
+    }
+
     debt.isPaid = true;
     debt.paidDate = Utils.today();
     if (paidWalletId) {
       debt.paidWalletId = paidWalletId;
     }
 
-    const targetWalletId = paidWalletId || debt.walletId;
-    const wIdx = state.wallets.findIndex(w => w.id === targetWalletId);
-    if (wIdx !== -1) {
-      if (debt.type === 'receivable') {
-        // Piutang lunas: uang kembali ke target wallet
-        state.wallets[wIdx].balance += debt.amount;
-      } else {
-        // Hutang lunas: uang keluar dari target wallet
-        state.wallets[wIdx].balance -= debt.amount;
-      }
-    }
-
     this.save(state);
+    return true;
   },
 
   deleteDebt(id) {
     const state = this.load();
     const debt = state.debts.find(d => d.id === id);
-    if (!debt) return;
-
-    // If not paid, reverse wallet balance
+    if (!debt) return false;
     if (!debt.isPaid) {
-      const wIdx = state.wallets.findIndex(w => w.id === debt.walletId);
-      if (wIdx !== -1) {
-        if (debt.type === 'receivable') {
-          state.wallets[wIdx].balance += debt.amount;
-        } else {
-          state.wallets[wIdx].balance -= debt.amount;
-        }
-      }
+      const delta = debt.type === 'receivable' ? debt.amount : -debt.amount;
+      if (!this.tryApplyDeltas(state, [{ walletId: debt.walletId, delta }])) return false;
     }
-
     state.debts = state.debts.filter(d => d.id !== id);
     this.save(state);
+    return true;
   },
 
   getDebts(filters = {}) {
-    let debts = this.load().debts;
+    let debts = this.load().debts.slice(); // salin: sort tak boleh mengubah state (cf. #9)
     if (filters.type) debts = debts.filter(d => d.type === filters.type);
     if (filters.isPaid !== undefined) debts = debts.filter(d => d.isPaid === filters.isPaid);
     
@@ -435,30 +447,48 @@ const Store = {
 
   // Transfer between wallets
   transfer(fromId, toId, amount) {
+    if (!fromId || !toId || fromId === toId) return false;
+    if (!(amount > 0)) return false; // tolak NaN, nol, negatif (cf. bug #4)
     const state = this.load();
-    const fromIdx = state.wallets.findIndex(w => w.id === fromId);
-    const toIdx = state.wallets.findIndex(w => w.id === toId);
-    if (fromIdx === -1 || toIdx === -1) return false;
-    if (state.wallets[fromIdx].balance < amount) return false;
-    state.wallets[fromIdx].balance -= amount;
-    state.wallets[toIdx].balance += amount;
+    if (!this.tryApplyDeltas(state, [
+      { walletId: fromId, delta: -amount },
+      { walletId: toId, delta: amount },
+    ])) return false;
     this.save(state);
     return true;
   },
 
   // ── Custom Category Operations ──
+  // Batas import (audit K6): nama/icon/key/color kategori custom bisa datang
+  // dari file JSON asing -> sanitasi sebelum disimpan/dirender. mIcon() tidak
+  // meng-escape, jadi iconName/key/color harus aman pola sebelum interpolasi.
+  sanitizeCustomCategory(c) {
+    const raw = c || {};
+    const key = String(raw.key || '');
+    const iconName = String(raw.iconName || 'label');
+    const color = String(raw.color || 'var(--mint-accent)');
+    return {
+      ...raw,
+      key: /^custom_[A-Za-z0-9]+$/.test(key) ? key : ('custom_' + Utils.id()),
+      name: String(raw.name || 'Kategori'),
+      iconName: /^[a-z0-9_]+$/.test(iconName) ? iconName : 'label',
+      color: /^(var\(--[a-z-]+\)|#[0-9a-fA-F]{3,8}|[a-z]+)$/.test(color) ? color : 'var(--mint-accent)',
+      type: raw.type === 'income' ? 'income' : 'expense',
+    };
+  },
+
   addCustomCategory(cat) {
     const state = this.load();
     if (!state.customCategories) state.customCategories = [];
     const key = 'custom_' + Utils.id();
-    const newCat = {
+    const newCat = this.sanitizeCustomCategory({
       key,
       name: cat.name,
       type: cat.type, // 'expense' | 'income'
       iconName: cat.iconName || 'label',
       color: cat.color || 'var(--mint-accent)',
       createdAt: Date.now()
-    };
+    });
     state.customCategories.push(newCat);
     this.save(state);
 
@@ -526,7 +556,7 @@ const Store = {
   // ── BILLS MANAGEMENT ──
   getBills(filters = {}) {
     const state = this.load();
-    let bills = state.bills || [];
+    let bills = (state.bills || []).slice(); // salin: sort tak boleh mengubah state (cf. #9)
 
     if (filters.isPaid !== undefined) {
       bills = bills.filter(b => b.isPaid === filters.isPaid);
@@ -598,6 +628,7 @@ const Store = {
       notified1d: false,
       notified12h: false,
       notified1h: false,
+      notifiedOverdue: false,
       createdAt: Date.now()
     };
     state.bills.push(newBill);
@@ -610,22 +641,26 @@ const Store = {
     state.bills = state.bills || [];
     const bill = state.bills.find(b => b.id === billId);
     if (!bill || bill.isPaid) return false;
+    if (!(bill.amount > 0)) return false;
+    if (!this.tryApplyDeltas(state, [{ walletId, delta: -bill.amount }])) return false;
 
     bill.isPaid = true;
     bill.paidDate = Utils.today();
     bill.paidWalletId = walletId;
-    this.save(state);
 
-    // Record automatically as an expense transaction
-    this.addTransaction({
+    // History record without second balance move: state already reflects payment.
+    state.transactions = state.transactions || [];
+    state.transactions.push({
+      id: Utils.id(),
       type: 'expense',
-      amount: bill.amount,
+      amount: Math.abs(bill.amount),
       category: 'cat_bills',
-      walletId: walletId,
+      walletId,
       date: Utils.today(),
-      note: `Pelunasan Tagihan: ${bill.title}${bill.note ? ' (' + bill.note + ')' : ''}`
+      note: `Pelunasan Tagihan: ${bill.title}${bill.note ? ' (' + bill.note + ')' : ''}`,
+      createdAt: Date.now(),
     });
-
+    this.save(state);
     return true;
   },
 
@@ -656,10 +691,11 @@ const Store = {
 
   deleteBill(billId) {
     const state = this.load();
-    if (state.bills) {
-      state.bills = state.bills.filter(b => b.id !== billId);
-      this.save(state);
-    }
+    state.bills = state.bills || [];
+    if (!state.bills.some(b => b.id === billId)) return false;
+    state.bills = state.bills.filter(b => b.id !== billId);
+    this.save(state);
+    return true;
   },
 
   // ── DEADLINE NOTIFICATION POLLER ──
@@ -701,6 +737,15 @@ const Store = {
         this._fireNotification(
           `⚠️ DARURAT: Tagihan 1 Jam Lagi: ${bill.title}`,
           `Tagihan ${bill.title} (${Utils.formatRupiah(bill.amount)}) akan jatuh tempo dalam 1 jam!`
+        );
+      }
+      // Notification 4: overdue — unpaid bill past its deadline (cf. #8)
+      else if (diffHours <= 0 && !bill.notifiedOverdue) {
+        bill.notifiedOverdue = true;
+        stateChanged = true;
+        this._fireNotification(
+          `🔴 Tagihan Terlewat Deadline: ${bill.title}`,
+          `Tagihan ${bill.title} (${Utils.formatRupiah(bill.amount)}) sudah melewati jatuh tempo, segera bayar!`
         );
       }
     });

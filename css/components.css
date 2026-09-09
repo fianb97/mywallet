@@ -1,22 +1,18 @@
 /* ========================================
-   MyWallet — Components (Verdant Glass)
+   MyWallet — Components (Crisp Modern Fintech)
    ======================================== */
 
-/* ── Glass Panel (base) ── */
+/* ── Elevated Panel (base, solid crisp surface) ── */
 .glass-panel {
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-stroke);
-  box-shadow: var(--glass-shadow);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-card);
 }
 
 .glass-panel-floating {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: var(--glass-bg-strong);
-  border: 1px solid var(--glass-stroke-strong);
-  box-shadow: var(--glass-shadow-floating);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-floating);
   transition: all 0.3s var(--ease-smooth);
 }
 
@@ -26,15 +22,14 @@
 
 /* ── Card ── */
 .card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
+  background: var(--surface-container-lowest);
   border: 1px solid var(--outline-variant);
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-lg);
   padding: var(--glass-padding);
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
+  transition: transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
 }
 
 .card__header {
@@ -78,20 +73,26 @@
   margin-top: 4px;
 }
 
-/* ── Hero Card (Gradient Solid Green) ── */
+/* ── Hero Card (Gradient Emerald Modern) ── */
 .card--hero {
-  background: linear-gradient(135deg, #1b4d24 0%, #0d2812 100%);
-  backdrop-filter: none;
-  border: 1px solid rgba(65, 179, 117, 0.25);
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+  border: none;
+  border-radius: var(--radius-xl);
   padding: 24px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 25px -5px rgba(4, 120, 87, 0.25);
   color: #ffffff;
 }
 
+[data-theme="dark"] .card--hero {
+  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
 [data-theme="light"] .card--hero {
-  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-fixed-dim) 100%);
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%);
   border: none;
-  box-shadow: 0 8px 24px rgba(60, 104, 66, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(4, 120, 87, 0.25);
 }
 
 .card--hero::before {
@@ -153,22 +154,23 @@
 .btn--primary:hover { opacity: 0.9; }
 
 .btn--secondary {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  color: var(--primary);
+  background: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
+  color: var(--on-surface);
   box-shadow: var(--shadow-sm);
 }
-.btn--secondary:hover { background: rgba(255, 255, 255, 0.8); }
+.btn--secondary:hover {
+  background: var(--surface-container);
+}
 
 [data-theme="dark"] .btn--secondary {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
   color: var(--on-surface);
 }
 
 [data-theme="dark"] .btn--secondary:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--surface-container);
 }
 
 .btn--danger {
@@ -182,7 +184,11 @@
   color: var(--on-surface-variant);
   padding: 8px;
 }
-.btn--ghost:hover { background: rgba(255, 255, 255, 0.4); }
+.btn--ghost:hover { background: rgba(0, 0, 0, 0.05); }
+
+[data-theme="dark"] .btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
 
 .btn--icon {
   width: 40px;
@@ -213,11 +219,9 @@
   gap: 10px;
   padding: 14px 18px;
   border-radius: var(--radius-lg);
-  background: var(--glass-bg-strong);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
-  border: 1px solid var(--glass-stroke-strong);
-  box-shadow: var(--glass-shadow-floating);
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-lg);
   animation: fadeInUp 0.3s var(--ease-out);
   font-size: var(--fs-sm);
   color: var(--on-surface);
@@ -713,9 +717,9 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: var(--surface-card);
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-lg);
 }
 
@@ -771,10 +775,9 @@
 }
 
 .stat-item {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
+  background: var(--surface-card);
   border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-2xl);
   padding: var(--glass-padding);
   display: flex;
@@ -824,11 +827,11 @@
   border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 700;
-  background: var(--glass-bg);
+  background: var(--surface-card);
   color: var(--on-surface);
   border: 1px solid var(--outline-variant);
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-card);
   transition: all var(--duration-fast) ease;
   width: auto;
   display: inline-block;

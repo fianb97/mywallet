@@ -24,7 +24,10 @@ const I18n = {
       appName: 'MyWallet',
       dashboard: 'Dashboard',
       activity: 'Transaksi',
+      navPrev: 'Periode sebelumnya',
+      navNext: 'Periode berikutnya',
       wallets: 'Dompet',
+      menu: 'Menu',
       debts: 'Hutang & Piutang',
       bills: 'Tagihan',
       assistant: 'Asisten AI',
@@ -191,6 +194,8 @@ const I18n = {
       promptBalance: 'Berapa saldo saya?',
       promptExpense: 'Pengeluaran minggu ini',
       promptTips: 'Kasih tips keuangan',
+      send: 'Kirim',
+      refreshModels: 'Muat ulang daftar model',
 
       // Form Modals
       recordTx: 'Catat Transaksi',
@@ -300,7 +305,10 @@ const I18n = {
       appName: 'MyWallet',
       dashboard: 'Dashboard',
       activity: 'Activity',
+      navPrev: 'Previous period',
+      navNext: 'Next period',
       wallets: 'Wallets',
+      menu: 'Menu',
       debts: 'Debts & Credit',
       assistant: 'AI Assistant',
       settings: 'Settings',
@@ -447,6 +455,8 @@ const I18n = {
       promptBalance: 'What is my balance?',
       promptExpense: 'Expenses this week',
       promptTips: 'Give me financial tips',
+      send: 'Send',
+      refreshModels: 'Refresh model list',
 
       // Form Modals
       recordTx: 'Record Transaction',

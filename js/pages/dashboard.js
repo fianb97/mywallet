@@ -64,7 +64,7 @@ function renderDashboard(container) {
             const catName = Utils.getCategoryName(d.category);
             return `<div style="display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);">
               <span style="color:${cat.color};">${cat.icon}</span>
-              <span style="flex:1;color:var(--on-surface-variant);">${catName}</span>
+              <span style="flex:1;color:var(--on-surface-variant);">${Utils.escapeHtml(catName)}</span>
               <span class="mono" style="font-weight:600;">${Utils.formatRupiah(d.amount)}</span>
             </div>`;
           }).join('')}
@@ -203,8 +203,8 @@ function renderTxRow(tx) {
       <div class="tx-item__left">
         <div class="tx-item__icon ${iconClass}">${cat.icon}</div>
         <div class="tx-item__info">
-          <span class="tx-item__name">${tx.note ? Utils.escapeHtml(tx.note) : catName}</span>
-          <span class="tx-item__meta">${walletName} • ${Utils.formatRelativeDate(tx.date)}</span>
+          <span class="tx-item__name">${tx.note ? Utils.escapeHtml(tx.note) : Utils.escapeHtml(catName)}</span>
+          <span class="tx-item__meta">${Utils.escapeHtml(walletName)} • ${Utils.formatRelativeDate(tx.date)}</span>
         </div>
       </div>
       <span class="tx-item__amount ${amountClass} mono">${sign}${Utils._getNumFmt().format(tx.amount)}</span>

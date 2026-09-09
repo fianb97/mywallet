@@ -5,9 +5,6 @@
 // ── Toast Notification System ──
 const Toast = {
   show(message, type = 'info') {
-    // Suppress success and info toasts per user request
-    if (type === 'success' || type === 'info') return;
-
     let container = document.getElementById('toast-container');
     if (!container) {
       container = document.createElement('div');
@@ -27,7 +24,7 @@ const Toast = {
     toast.innerHTML = `
       <span class="toast__icon">${icons[type]}</span>
       <span class="toast__message">${Utils.escapeHtml(message)}</span>
-      <button class="toast__close" onclick="this.closest('.toast').remove()">${mIcon('close')}</button>
+      <button class="toast__close" aria-label="${t('close')}" onclick="this.closest('.toast').remove()">${mIcon('close')}</button>
     `;
 
     container.appendChild(toast);
@@ -53,7 +50,7 @@ const Modal = {
       <div class="modal">
         <div class="modal__header">
           <h3 class="modal__title">${title}</h3>
-          <button class="modal__close" id="modal-close-btn">${mIcon('close')}</button>
+          <button class="modal__close" id="modal-close-btn" aria-label="${t('close')}">${mIcon('close')}</button>
         </div>
         <div class="modal__body" id="modal-body">
           ${bodyHtml}
@@ -123,12 +120,11 @@ function renderSidebar() {
   `;
 }
 
-// ── Header Renderer (Glass AppBar) ──
+// ── Header Renderer (Crisp AppBar; sidebar dibuka via Menu di bottom nav) ──
 function renderHeader() {
   return `
     <header class="header" id="header">
       <div class="header__left">
-        <button class="header__menu-btn" id="menu-btn">${mIcon('menu')}</button>
         <h2 class="header__title" id="header-title"><span>MyWallet</span></h2>
       </div>
       <div class="header__right">
@@ -138,33 +134,39 @@ function renderHeader() {
   `;
 }
 
-// ── Bottom Nav Renderer (Glass Bottom Bar) ──
+// ── Bottom Nav Renderer (Crisp bottom bar: 4 tabs + center quick action) ──
 function renderBottomNav() {
-  const nav = [
+  const left = [
     { page: 'dashboard', icon: 'dashboard', label: t('dashboard') },
     { page: 'transactions', icon: 'receipt_long', label: t('activity') },
-    { page: 'wallets', icon: 'account_balance_wallet', label: t('wallets') },
-    { page: 'debts', icon: 'handshake', label: t('debts') },
-    { page: 'bills', icon: 'request_quote', label: t('bills') },
   ];
+  const right = [
+    { page: 'wallets', icon: 'account_balance_wallet', label: t('wallets') },
+  ];
+  const navItem = (n) => `
+          <a href="#${n.page}" class="bottom-nav__item" data-page="${n.page}">
+            ${mIcon(n.icon)}
+            <span>${n.label}</span>
+          </a>`;
 
   return `
     <nav class="bottom-nav" id="bottom-nav">
       <div class="bottom-nav__list">
-        ${nav.map(n => `
-          <a href="#${n.page}" class="bottom-nav__item" data-page="${n.page}">
-            ${mIcon(n.icon)}
-            <span>${n.label}</span>
-          </a>
-        `).join('')}
+        ${left.map(navItem).join('')}
+        <button class="bottom-nav__fab" id="fab-btn" title="${t('recordTx')}" aria-label="${t('recordTx')}">${mIcon('add')}</button>
+        ${right.map(navItem).join('')}
+        <button class="bottom-nav__item bottom-nav__menu" id="bottom-nav-menu" data-action="menu" aria-label="${t('menu')}" aria-expanded="false">
+          ${mIcon('menu')}
+          <span>${t('menu')}</span>
+        </button>
       </div>
     </nav>
   `;
 }
 
-// ── FAB Renderer ──
+// ── FAB Renderer (standalone; shell memakai center action di bottom nav) ──
 function renderFAB() {
-  return `<button class="fab" id="fab-btn" title="Tambah Transaksi">${mIcon('add')}</button>`;
+  return `<button class="fab" id="fab-btn" title="${t('recordTx')}" aria-label="${t('recordTx')}">${mIcon('add')}</button>`;
 }
 
 // ── Onboarding ──
@@ -304,6 +306,12 @@ window.importData = function (event) {
         throw new Error('Format file tidak valid untuk MyWallet');
       }
 
+      // Sanitasi kategori custom di batas import (audit K6): file asing bisa
+      // membawa iconName/key/color ber-markup -> stored XSS saat rehidrasi.
+      if (Array.isArray(parsed.customCategories) && typeof Store !== 'undefined' && Store.sanitizeCustomCategory) {
+        parsed.customCategories = parsed.customCategories.map(c => Store.sanitizeCustomCategory(c));
+      }
+
       localStorage.setItem('mywallet_data', JSON.stringify(parsed));
       Store.invalidateCache(); // Clear in-memory cache before reload
       Toast.show('Data berhasil dipulihkan! Aplikasi memuat ulang... 🔄', 'success');
@@ -346,7 +354,7 @@ function renderCategorySelector(type = 'expense', selectedCat = '') {
         ${cats.map(([key, cat]) => `
           <div class="cat-grid__item ${key === selectedCat ? 'selected' : ''}" data-category="${key}">
             <span class="cat-grid__item-icon">${cat.icon}</span>
-            <span>${Utils.getCategoryName(key)}</span>
+            <span>${Utils.escapeHtml(Utils.getCategoryName(key))}</span>
           </div>
         `).join('')}
       </div>

@@ -1,0 +1,13 @@
+{
+  "name": "my-wallet-",
+  "version": "1.0.0",
+  "description": "demo",
+  "main": "sw.js",
+  "scripts": {
+    "test": "node --test tests/sw.cache.test.js tests/toast.test.js tests/server.test.js tests/transfer.test.js tests/tx-listener.test.js tests/lang-switch.test.js tests/bill-paid.test.js tests/ai-transfer.test.js tests/xss.test.js tests/a11y-names.test.js tests/debt-paid.test.js tests/add-transaction.test.js tests/get-transactions.test.js tests/router-fallback.test.js tests/ce-draft.test.js tests/bill-notify.test.js tests/ai-error-xss.test.js tests/edit-guard.test.js tests/ai-intents.test.js tests/store-invariant.test.js tests/ai-remote.test.js tests/refresh-shell.test.js tests/tx-periods.test.js tests/tx-summary.test.js tests/tx-form-split.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

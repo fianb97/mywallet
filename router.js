@@ -1,0 +1,85 @@
+// ========================================
+// MyWallet — SPA Router
+// ========================================
+
+const Router = {
+  routes: {},
+  currentPage: null,
+
+  // Register a route
+  register(hash, renderFn) {
+    this.routes[hash] = renderFn;
+  },
+
+  // Navigate to a page
+  navigate(hash) {
+    window.location.hash = hash;
+  },
+
+  // Handle hash change
+  handleRoute() {
+    let hash = window.location.hash.slice(1) || 'dashboard';
+    let renderFn = this.routes[hash];
+
+    // Unknown hash: fall back to dashboard instead of a blank page (cf. #7).
+    if (!renderFn && hash !== 'dashboard') {
+      hash = 'dashboard';
+      renderFn = this.routes[hash];
+    }
+    if (!renderFn) return;
+
+    this.currentPage = hash;
+    const content = document.getElementById('page-content');
+    if (content) {
+      content.innerHTML = '';
+      content.className = 'page-content animate-fade-in';
+      renderFn(content);
+    }
+    // Update active states
+    this.updateActiveNav(hash);
+    this.updateHeaderTitle(hash);
+    this.updateFAB(hash);
+  },
+
+  // Show/Hide FAB button based on route (hide on AI assistant page)
+  updateFAB(hash) {
+    const fab = document.getElementById('fab-btn');
+    if (fab) {
+      fab.style.display = hash === 'ai' ? 'none' : 'flex';
+    }
+  },
+
+  // Update navigation active states
+  updateActiveNav(hash) {
+    // Sidebar
+    document.querySelectorAll('.sidebar__link').forEach(link => {
+      link.classList.toggle('active', link.dataset.page === hash);
+    });
+    // Bottom nav
+    document.querySelectorAll('.bottom-nav__item').forEach(item => {
+      item.classList.toggle('active', item.dataset.page === hash);
+    });
+  },
+
+  // Update header title
+  updateHeaderTitle(hash) {
+    const titles = {
+      dashboard: mIcon('dashboard') + ` <span>${t('dashboard')}</span>`,
+      transactions: mIcon('receipt_long') + ` <span>${t('activity')}</span>`,
+      wallets: mIcon('account_balance_wallet') + ` <span>${t('wallets')}</span>`,
+      debts: mIcon('handshake') + ` <span>${t('debts')}</span>`,
+      bills: mIcon('request_quote') + ` <span>${t('bills')}</span>`,
+      ai: mIcon('smart_toy') + ` <span>${t('assistant')}</span>`,
+      'custom-endpoints': mIcon('vpn_key') + ` <span>${t('customEndpoints')}</span>`,
+      settings: mIcon('settings') + ` <span>${t('settings')}</span>`
+    };
+    const el = document.getElementById('header-title');
+    if (el) el.innerHTML = titles[hash] || `<span>MyWallet</span>`;
+  },
+
+  // Initialize
+  init() {
+    window.addEventListener('hashchange', () => this.handleRoute());
+    this.handleRoute();
+  }
+};

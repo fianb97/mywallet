@@ -3,7 +3,7 @@ $listener.Prefixes.Add('http://localhost:8080/')
 $listener.Start()
 Write-Host 'Server started on http://localhost:8080'
 
-$root = 'c:\Users\ACER\.gemini\antigravity\scratch'
+$root = $PSScriptRoot
 
 $mimeTypes = @{
     '.html' = 'text/html; charset=utf-8'

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mywallet-cache-v24';
+const CACHE_NAME = 'mywallet-cache-v25';
 const urlsToCache = [
   './',
   './index.html',
@@ -31,7 +31,8 @@ const urlsToCache = [
   './js/pages/ai-assistant.js',
   './js/pages/custom-endpoints.js',
   './js/pages/settings.js',
-  './js/app.js'
+  './js/app.js',
+  './js/api.js'
 ];
 
 // Install: pre-cache all app shell resources

@@ -220,6 +220,13 @@ function renderCustomEndpoints(container) {
     const toggleBtn = container.querySelector('#ce-form-toggle');
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
+        // Lipat saat mode Edit = keluar ke mode Tambah (tanpa harus keluar halaman).
+        if (editingId && !formCollapsed) {
+          editingId = null;
+          testingState = '';
+          testMessage = '';
+          showApiKey = false;
+        }
         formCollapsed = !formCollapsed;
         render();
       });

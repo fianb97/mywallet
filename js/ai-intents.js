@@ -357,7 +357,7 @@ function parseAIIntent(text, ctx = {}) {
     const cLower = clause.toLowerCase().trim();
 
     // 1. Check for Pay Debt / Pay Receivable (Pelunasan Hutang-Piutang)
-    const isPaymentWord = cLower.match(/\b(lunas|melunasi|melunaskan|pelunasan|bayar|membayar|membayarkan|dibayar)\b/i);
+    const isPaymentWord = cLower.match(/\b(lunas|lunasin|melunasi|melunaskan|pelunasan|bayar|bayarin|membayar|membayarkan|dibayar)\b/i);
     const isDebtWord = cLower.match(/\b(hutang|utang|piutang|pinjaman)\b/i);
 
     if (isPaymentWord && isDebtWord) {
@@ -366,10 +366,10 @@ function parseAIIntent(text, ctx = {}) {
       const hint = extractWalletHint(ctxWallets, cLower);
 
       let personName = '';
-      const personMatch = cLower.match(/(?:hutang|utang|piutang|pinjaman)\s+([a-z0-9]+)/i) ||
-                          cLower.match(/(?:melunasi|pelunasan|bayar|membayar|lunas)\s+(?:hutang|utang|piutang)?\s*([a-z0-9]+)/i);
+      const personMatch = cLower.match(/(?:hutang|utang|piutang|pinjaman)\s+(?:(?:ke|pada|dari|oleh)\s+)?([a-z0-9]+)/i) ||
+                          cLower.match(/(?:melunasi|melunasin|pelunasan|bayar|bayarin|membayar|lunas|lunasin)\s+(?:hutang|utang|piutang)?\s*([a-z0-9]+)/i);
       if (personMatch) {
-        let p = personMatch[1].replace(/^(ke|pada|dari|oleh|sebesar)\s+/i, '').trim();
+        let p = personMatch[1].replace(/^(ke|pada|dari|oleh|sebesar)(\s+|$)/i, '').trim();
         if (!p.match(/^(rp|ribu|rb|jt|juta|\d+|pakai|pake|via|lewat)$/i)) {
           personName = p.charAt(0).toUpperCase() + p.slice(1);
         }
@@ -416,13 +416,17 @@ function parseAIIntent(text, ctx = {}) {
     }
 
     // 3. Check for Add Debt / Add Receivable (Hutang/Piutang Baru)
-    if (cLower.match(/\b(hutang|utang|pinjam|piutang|pinjamin)\b/i)) {
+    // Matriks bahasa sehari-hari: arah dari subjek + pola "ke aku ...",
+    // orang dari subjek non-diri, varian pinjem/minjem/lunasin/bayarin.
+    if (cLower.match(new RegExp(`\\b(${DEBT_VERB_SRC})\\b`, 'i'))) {
       const amount = parseAmountFromClause(cLower);
       if (amount > 0) {
-        const isReceivable = !!cLower.match(/piutang|pinjamin|(?:ke\s+saya|dariku|dariku)/i);
-        const personMatch = cLower.match(/(?:hutang|utang|pinjam|piutang|pinjamin)\s+(?:ke|pada|dari|oleh)?\s*([a-z0-9]+)/i) ||
-                            cLower.match(/([a-z0-9]+)\s+(?:pinjam|hutang|utang)/i);
-        const personName = personMatch ? personMatch[1].charAt(0).toUpperCase() + personMatch[1].slice(1) : 'Teman';
+        const verbMatch = cLower.match(new RegExp(`\\b(${DEBT_VERB_SRC})\\b`, 'i'));
+        const subject = verbMatch ? subjectBeforeVerb(cLower, verbMatch.index) : '';
+        const isReceivable = !!cLower.match(/piutang|pinjamin/i) ||
+          !!cLower.match(new RegExp(`(?:${DEBT_VERB_SRC})\\s+(?:ke|kepada|sama)\\s+(?:aku|saya|gue|gua|gw|ane)\\b`, 'i')) ||
+          subject !== '';
+        const personName = subject ? capFirst(subject) : personFromDebtClause(cLower);
         const walletId = walletIdFromClause(ctxWallets, cLower);
 
         actions.push({
@@ -537,6 +541,39 @@ function parseAIIntent(text, ctx = {}) {
   }
 
   return actions;
+}
+
+// Kata kerja hutang-piutang sehari-hari (cf. matriks bahasa di tests/ai-intents.test.js).
+const DEBT_VERB_SRC = 'hutang|utang|pinjam|pinjem|minjem|minjam|meminjam|piutang|pinjamin';
+
+// Kata yang tak boleh jadi subjek/nama orang: kata-ganti diri, kata perintah,
+// satuan angka (cf. matriks bahasa sehari-hari di tests/ai-intents.test.js).
+const NON_PERSON_TOKEN = /^(?:aku|saya|gue|gua|gw|ane|catat|tambah|tambahkan|catatkan|masukkan|tolong|buat|bikin|simpan|rp|ribu|rb|jt|juta|\d+)$/i;
+
+function capFirst(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Subjek = token sebelum kata kerja hutang, dipindai dari kanan; yang pertama
+// bukan NON_PERSON_TOKEN adalah pelaku ("temen gue pinjem" -> "temen").
+// '' berarti tak ada subjek eksplisit ("saya pinjam ...", "catat hutang ...").
+function subjectBeforeVerb(lower, verbIdx) {
+  const before = lower.slice(0, verbIdx).trim().split(/\s+/).filter(Boolean);
+  for (let i = before.length - 1; i >= 0; i--) {
+    const tok = before[i].replace(/[^a-z0-9]+/g, '');
+    if (!tok || NON_PERSON_TOKEN.test(tok)) continue;
+    return tok;
+  }
+  return '';
+}
+
+// Nama orang fallback pola lama (verb-di-depan), dengan guard kata-diri/angka.
+function personFromDebtClause(cLower) {
+  const verbs = DEBT_VERB_SRC;
+  const m = cLower.match(new RegExp(`(?:${verbs})\\s+(?:ke|pada|dari|oleh)?\\s*([a-z0-9]+)`, 'i')) ||
+            cLower.match(new RegExp(`([a-z0-9]+)\\s+(?:${verbs})`, 'i'));
+  if (m && !NON_PERSON_TOKEN.test(m[1])) return capFirst(m[1]);
+  return 'Teman';
 }
 
 function parseAmountFromClause(clause) {
